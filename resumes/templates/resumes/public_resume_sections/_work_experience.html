@@ -1,0 +1,22 @@
+{% if work_experiences %}
+<section class="mb-8">
+    <h2 class="text-xl font-semibold border-b pb-2 mb-4">Work Experience</h2>
+    {% for experience in work_experiences %}
+    <div class="mb-4">
+        <div class="flex justify-between">
+            <h3 class="text-lg font-medium">{{ experience.job_title }} - {{ experience.company }}</h3>
+            <p class="text-gray-600">
+                {{ experience.start_date|date:"M Y" }} - 
+                {% if experience.end_date %}
+                    {{ experience.end_date|date:"M Y" }}
+                {% else %}
+                    Present
+                {% endif %}
+            </p>
+        </div>
+        <p class="text-gray-600 mb-2">{{ experience.location }}</p>
+        <p class="text-gray-700">{{ experience.description }}</p>
+    </div>
+    {% endfor %}
+</section>
+{% endif %}

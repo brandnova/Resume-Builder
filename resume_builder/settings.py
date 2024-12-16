@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -37,6 +38,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    # installed packages
+    'django_cleanup.apps.CleanupConfig',
+    'django_ckeditor_5',
     
     # Local apps
     'core',
@@ -121,7 +126,15 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = 'static/'
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static'),
+]
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
@@ -134,11 +147,152 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # For development
 
 # EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-# EMAIL_HOST = 'smtp.gmail.com'  # Replace with your SMTP host
+# EMAIL_HOST = 'smtp.gmail.com'
 # EMAIL_PORT = 587
 # EMAIL_USE_TLS = True
-# EMAIL_HOST_USER = 'your-email@gmail.com'  # Replace with your email
-# EMAIL_HOST_PASSWORD = 'your-app-password'  # Use app password for Gmail
+# EMAIL_HOST_USER = 'brandnova89@gmail.com'
+# EMAIL_HOST_PASSWORD = 'zxgc intt dvax quzy'
 
 # Default from email
-DEFAULT_FROM_EMAIL = 'noreply@yourdomain.com'
+DEFAULT_FROM_EMAIL = 'brandnova89@gmail.com'
+
+
+# Path to store uploaded images
+CKEDITOR_UPLOAD_PATH = "ckeditor/uploads/"
+
+# Optional: Restrict the formats of the uploaded images
+CKEDITOR_IMAGE_BACKEND = "pillow"  # or "pil"
+
+# Optional: Thumbnail size
+CKEDITOR_THUMBNAIL_SIZE = (300, 300)
+
+# Optional: Custom CKEditor settings
+CKEDITOR_CONFIGS = {
+    'default': {
+        'toolbar': 'full',
+        'height': 300,
+        'width': '100%',
+        'extraPlugins': ','.join([
+            'uploadimage',  # Include the upload image plugin
+            # other extra plugins you want to add
+        ]),
+    },
+}
+
+
+# CKEditor Configuration
+
+customColorPalette = [
+        {
+            'color': 'hsl(4, 90%, 58%)',
+            'label': 'Red'
+        },
+        {
+            'color': 'hsl(340, 82%, 52%)',
+            'label': 'Pink'
+        },
+        {
+            'color': 'hsl(291, 64%, 42%)',
+            'label': 'Purple'
+        },
+        {
+            'color': 'hsl(262, 52%, 47%)',
+            'label': 'Deep Purple'
+        },
+        {
+            'color': 'hsl(231, 48%, 48%)',
+            'label': 'Indigo'
+        },
+        {
+            'color': 'hsl(207, 90%, 54%)',
+            'label': 'Blue'
+        },
+    ]
+
+CKEDITOR_5_CUSTOM_CSS = 'assets/css/ckeditor.css' 
+CKEDITOR_5_UPLOAD_PATH = "media/" 
+CKEDITOR_5_CONFIGS = {
+    'default': {
+        'toolbar': {
+            'items': [
+                'heading', 'fontFamily', 'fontSize', 'fontColor', 'fontBackgroundColor',
+                '|',
+                'bold', 'italic', 'underline', 'strikethrough', 'subscript', 'superscript',
+                '|',
+                'alignment', 'bulletedList', 'numberedList', 'todoList',
+                '|',
+                'link', 'insertImage', 'imageUpload', 'mediaEmbed',
+                '|',
+                'code', 'codeBlock', 'sourceEditing', 'highlight',
+                '|',
+                'outdent', 'indent', 'blockQuote', 'horizontalLine', 'removeFormat',
+                '|',
+                'undo', 'redo', 'findAndReplace', 'insertTable', 'specialCharacters'
+                
+            ],
+            'extraPlugins': 'GeneralHtmlSupport',
+            'htmlSupport': {
+                'allow': [
+                    {
+                        'name': '.*',
+                        'attributes': True,
+                        'classes': True,
+                        'styles': True
+                    }
+                ],
+            },
+            'shouldNotGroupWhenFull': True
+        },
+        'menuBar': {
+            'isVisible': True
+        },
+        'image': {
+            'toolbar': ['imageTextAlternative', '|', 'imageStyle:alignLeft',
+                        'imageStyle:alignRight', 'imageStyle:alignCenter', 'imageStyle:side'],
+            'styles': [
+                'full',
+                'side',
+                'alignLeft',
+                'alignRight',
+                'alignCenter',
+            ]
+        },
+        'table': {
+            'contentToolbar': ['tableColumn', 'tableRow', 'mergeTableCells',
+                               'tableProperties', 'tableCellProperties'],
+            'tableProperties': {
+                'borderColors': 'customColorPalette',
+                'backgroundColors': 'customColorPalette'
+            },
+            'tableCellProperties': {
+                'borderColors': 'customColorPalette',
+                'backgroundColors': 'customColorPalette'
+            }
+        },
+        'heading': {
+            'options': [
+                {'model': 'paragraph', 'title': 'Paragraph', 'class': 'ck-heading_paragraph'},
+                {'model': 'heading1', 'view': 'h1', 'title': 'Heading 1', 'class': 'ck-heading_heading1'},
+                {'model': 'heading2', 'view': 'h2', 'title': 'Heading 2', 'class': 'ck-heading_heading2'},
+                {'model': 'heading3', 'view': 'h3', 'title': 'Heading 3', 'class': 'ck-heading_heading3'},
+                {'model': 'heading4', 'view': 'h4', 'title': 'Heading 4', 'class': 'ck-heading_heading4'},
+                {'model': 'heading5', 'view': 'h5', 'title': 'Heading 5', 'class': 'ck-heading_heading5'},
+                {'model': 'heading6', 'view': 'h6', 'title': 'Heading 6', 'class': 'ck-heading_heading6'}
+            ]
+        },
+        'mention': {
+            'feeds': [
+                {
+                    'marker': '@',
+                    'feed': ['@John', '@Jane', '@Admin'],
+                    'minimumCharacters': 1
+                }
+            ]
+        },
+        'upload': {
+            "types": ['png', 'jpg', 'jpeg', 'gif']
+        },
+        
+        
+    }
+}

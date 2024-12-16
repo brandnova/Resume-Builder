@@ -1,0 +1,27 @@
+{% extends "resumes/base.html" %}
+
+{% block content %}
+<div class="max-w-md mx-auto bg-white p-8 rounded-lg shadow-md">
+    <h2 class="text-2xl font-bold mb-6">Create New Resume</h2>
+    
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="mb-4">
+            {{ form.title.label_tag }}
+            {{ form.title }}
+            {% if form.title.errors %}
+                <div class="text-red-500">
+                    {% for error in form.title.errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+        
+        <button type="submit" class="w-full bg-blue-500 text-white py-2 rounded">
+            Start Resume
+        </button>
+    </form>
+</div>
+{% endblock %}

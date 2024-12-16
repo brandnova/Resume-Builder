@@ -193,3 +193,7 @@ class Reference(models.Model):
    - Consider adding templates or themes to give users the ability to choose different resume styles.
 
 This structure provides a flexible way to build and extend your resume builder, while also making it adaptable to a variety of needs and resume styles.
+
+
+
+Here is the required workflow. Users register and are taken to their dashboard. When they start the resume creaton process, they are teken through a multi-step information filling process where they input their details section by section. There should be fixed sections that the user would have to fill in and thise sections are important for any resume creation process. There should also be optional sections that the user user can choose to skip if they do not have details to input for those sections yet. There should also be able to save and continue from where they stopped later.

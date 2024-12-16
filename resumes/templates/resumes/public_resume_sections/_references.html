@@ -1,0 +1,15 @@
+{% if resume.references.all %}
+<section class="mb-8">
+    <h2 class="text-xl font-semibold border-b pb-2 mb-4">References</h2>
+    {% for reference in resume.references.all %}
+    <div class="mb-4 p-4 bg-gray-50 rounded-lg">
+        <h3 class="text-lg font-medium">{{ reference.reference_name }}</h3>
+        <p class="text-gray-600">{{ reference.position }} at {{ reference.organization }}</p>
+        <div class="mt-2 text-sm text-gray-700">
+            <p>Email: {{ reference.email }}</p>
+            <p>Phone: {{ reference.phone }}</p>
+        </div>
+    </div>
+    {% endfor %}
+</section>
+{% endif %}

@@ -1,0 +1,19 @@
+{% if resume.certification_set.all %}
+<section class="mb-8">
+    <h2 class="text-xl font-semibold border-b pb-2 mb-4">Certifications</h2>
+    {% for certification in resume.certification_set.all %}
+    <div class="mb-4">
+        <div class="flex justify-between">
+            <h3 class="text-lg font-medium">{{ certification.name }}</h3>
+            <p class="text-gray-600">
+                Obtained: {{ certification.date_obtained|date:"M Y" }}
+                {% if certification.expiration_date %}
+                    | Expires: {{ certification.expiration_date|date:"M Y" }}
+                {% endif %}
+            </p>
+        </div>
+        <p class="text-gray-600">{{ certification.organization }}</p>
+    </div>
+    {% endfor %}
+</section>
+{% endif %}

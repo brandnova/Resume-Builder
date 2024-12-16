@@ -1,5 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, authenticate, logout
+
+from resumes.models import Resume
 from .forms import CustomUserCreationForm, UserProfileUpdateForm, CustomAuthenticationForm, CustomPasswordResetForm, CustomPasswordChangeForm
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -90,9 +92,25 @@ def change_password(request):
         'form': form
     })
 
-
+@login_required
 def dashboard(request):
-    return render(request, 'accounts/dashboard.html')
+    resumes = Resume.objects.filter(user=request.user).order_by('-created_at')
+    return render(request, 'accounts/dashboard.html', {
+        'resumes': resumes,
+    })
+
+
+@login_required
+def view_resumes(request):
+    resumes = Resume.objects.filter(user=request.user)
+    return render(request,'accounts/view_resumes.html', {'resumes': resumes})
+
+@login_required
+def view_resumes(request):
+    resumes = Resume.objects.filter(user=request.user)
+    return render(request, 'accounts/view_resumes.html', {'resumes': resumes})
+
+
 
 @login_required
 def update_profile(request):

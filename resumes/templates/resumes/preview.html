@@ -1,0 +1,128 @@
+{% extends "resumes/base.html" %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto mt-10">
+    <h1 class="text-2xl mb-6">Resume Preview: {{ resume.title }}</h1>
+
+    {% if personal_info %}
+    <section class="mb-8">
+        <h2 class="text-xl mb-4">Personal Information</h2>
+        <div>
+            <p>{{ personal_info.full_name }}</p>
+            <p>{{ personal_info.email }}</p>
+            <p>{{ personal_info.phone }}</p>
+            <p>{{ personal_info.location }}</p>
+        </div>
+    </section>
+    {% endif %}
+
+    {% if work_experiences %}
+    <section class="mb-8">
+        <h2 class="text-xl mb-4">Work Experience</h2>
+        {% for exp in work_experiences %}
+            <div class="mb-4">
+                <p>{{ exp.job_title }} at {{ exp.company }}</p>
+                <p>{{ exp.start_date }} - {% if exp.end_date %}{{ exp.end_date }}{% else %}Present{% endif %}</p>
+                <p>{{ exp.description }}</p>
+            </div>
+        {% endfor %}
+    </section>
+    {% endif %}
+
+    {% if education_entries %}
+    <section class="mb-8">
+        <h2 class="text-xl mb-4">Education</h2>
+        {% for edu in education_entries %}
+            <div class="mb-4">
+                <p>{{ edu.degree }} in {{ edu.major }}</p>
+                <p>{{ edu.institution }}</p>
+                <p>{{ edu.start_date }} - {% if edu.end_date %}{{ edu.end_date }}{% else %}Present{% endif %}</p>
+            </div>
+        {% endfor %}
+    </section>
+    {% endif %}
+
+    {% if skills %}
+    <section class="mb-8">
+        <h2 class="text-xl mb-4">Skills</h2>
+        <div>
+            {% for skill in skills %}
+                <span>{{ skill.name }} ({{ skill.level }})</span>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    {% if projects %}
+    <section class="mb-8">
+        <h2 class="text-xl mb-4">Projects</h2>
+        {% for project in projects %}
+            <div class="mb-4">
+                <p>{{ project.name }}</p>
+                <p>{{ project.technologies }}</p>
+                <p>{{ project.description }}</p>
+                <p><span><b>From:</b> {{ project.start_date }} - <b>To:</b> {{ project.end_date }}</span></p>
+                <p><a href="{{ project.url }}" target="blank">{{ project.url }}</a></p>
+            </div>
+        {% endfor %}
+    </section>
+    {% endif %}
+
+    {% if certifications %}
+    <section class="mb-8">
+        <h2 class="text-xl mb-4">Certifications</h2>
+        {% for certification in certifications %}
+            <div class="mb-4">
+                <p>{{ certification.name }}</p>
+                <p>{{ certification.organization }}</p>
+                <p><span><b>Date Obtained:</b> {{ certification.date_obtained }}</span></p>
+                <p><span><b>Expiration Date:</b> {{ certification.expiration_date }}</span></p>
+            </div>
+        {% endfor %}
+    </section>
+    {% endif %}
+
+    {% if languages %}
+    <section class="mb-8">
+        <h2 class="text-xl mb-4">Languages</h2>
+        {% for language in languages %}
+            <div class="mb-4">
+                <p>{{ language.name }}</p>
+                <p>{{ language.proficiency }}</p>
+            </div>
+        {% endfor %}
+    </section>
+    {% endif %}
+
+    {% if references %}
+    <section class="mb-8">
+        <h2 class="text-xl mb-4">References</h2>
+        {% for ref in references %}
+            <div class="mb-4">
+                <p>{{ ref.reference_name }}</p>
+                <p>{{ ref.position }}</p>
+                <p>{{ ref.organization }}</p>
+                <p>{{ ref.email }}</p>
+                <p>{{ ref.phone }}</p>
+            </div>
+        {% endfor %}
+    </section>
+    {% endif %}
+
+    {% if custom_sections %}
+    <section class="mb-8">
+        <h2 class="text-xl mb-4">Custom Sections</h2>
+        {% for custom_section in custom_sections %}
+            <div class="mb-4">
+                <p>{{ custom_section.section_name }}</p>
+                <p>{{ custom_section.content }}</p>
+            </div>
+        {% endfor %}
+    </section>
+    {% endif %}
+
+    <div class="mt-6">
+        <a href="{% url 'public_resume_view' resume.slug %}" class="px-4 py-2 bg-green-500 text-white">View Public Link</a>
+    </div>
+</div>
+{% endblock %}
