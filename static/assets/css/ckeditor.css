@@ -1,0 +1,4 @@
+.ck-editor__editable {
+    max-height: 400px; /* Adjust height */
+    width: 100%;      /* Adjust width */
+}

@@ -1,0 +1,191 @@
+{% extends 'accounts/dashboard_base.html' %}
+{% load static %}
+
+{% block extra_head %}
+{{ custom_section_formset.media }}
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <h2 class="text-2xl font-bold mb-4">Edit Resume</h2>
+    <form method="post" enctype="multipart/form-data" class="space-y-8">
+        {% csrf_token %}
+        {{ form.as_p }}
+
+        <h3 class="text-xl font-bold mt-8 mb-4">Personal Information</h3>
+        {{ personal_info_form.as_p }}
+
+        <h3 class="text-xl font-bold mt-8 mb-4">Work Experience</h3>
+        {{ work_experience_formset.management_form }}
+        <div id="work-experience-forms">
+            {% for form in work_experience_formset %}
+                <div class="border p-4 rounded mb-4">
+                    {{ form.as_p }}
+                    {% if work_experience_formset.can_delete %}
+                        <div class="mt-2">
+                            {{ form.DELETE }}
+                            <label for="{{ form.DELETE.id_for_label }}" class="ml-2">Delete this entry</label>
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+        <button type="button" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-2" id="add-work-experience">Add Work Experience</button>
+
+        <h3 class="text-xl font-bold mt-8 mb-4">Education</h3>
+        {{ education_formset.management_form }}
+        <div id="education-forms">
+            {% for form in education_formset %}
+                <div class="border p-4 rounded mb-4">
+                    {{ form.as_p }}
+                    {% if education_formset.can_delete %}
+                        <div class="mt-2">
+                            {{ form.DELETE }}
+                            <label for="{{ form.DELETE.id_for_label }}" class="ml-2">Delete this entry</label>
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+        <button type="button" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-2" id="add-education">Add Education</button>
+
+        <h3 class="text-xl font-bold mt-8 mb-4">Skills</h3>
+        {{ skills_formset.management_form }}
+        <div id="skills-forms">
+            {% for form in skills_formset %}
+                <div class="border p-4 rounded mb-4">
+                    {{ form.as_p }}
+                    {% if skills_formset.can_delete %}
+                        <div class="mt-2">
+                            {{ form.DELETE }}
+                            <label for="{{ form.DELETE.id_for_label }}" class="ml-2">Delete this entry</label>
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+        <button type="button" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-2" id="add-skills">Add Skills</button>
+
+        <h3 class="text-xl font-bold mt-8 mb-4">Projects</h3>
+        {{ projects_formset.management_form }}
+        <div id="projects-forms">
+            {% for form in projects_formset %}
+                <div class="border p-4 rounded mb-4">
+                    {{ form.as_p }}
+                    {% if projects_formset.can_delete %}
+                        <div class="mt-2">
+                            {{ form.DELETE }}
+                            <label for="{{ form.DELETE.id_for_label }}" class="ml-2">Delete this entry</label>
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+        <button type="button" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-2" id="add-projects">Add Projects</button>
+
+        <h3 class="text-xl font-bold mt-8 mb-4">Certifications</h3>
+        {{ certifications_formset.management_form }}
+        <div id="certifications-forms">
+            {% for form in certifications_formset %}
+                <div class="border p-4 rounded mb-4">
+                    {{ form.as_p }}
+                    {% if certifications_formset.can_delete %}
+                        <div class="mt-2">
+                            {{ form.DELETE }}
+                            <label for="{{ form.DELETE.id_for_label }}" class="ml-2">Delete this entry</label>
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+        <button type="button" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-2" id="add-certifications">Add Certifications</button>
+
+        <h3 class="text-xl font-bold mt-8 mb-4">Languages</h3>
+        {{ languages_formset.management_form }}
+        <div id="languages-forms">
+            {% for form in languages_formset %}
+                <div class="border p-4 rounded mb-4">
+                    {{ form.as_p }}
+                    {% if languages_formset.can_delete %}
+                        <div class="mt-2">
+                            {{ form.DELETE }}
+                            <label for="{{ form.DELETE.id_for_label }}" class="ml-2">Delete this entry</label>
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+        <button type="button" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-2" id="add-languages">Add Languages</button>
+
+        <h3 class="text-xl font-bold mt-8 mb-4">References</h3>
+        {{ references_formset.management_form }}
+        <div id="references-forms">
+            {% for form in references_formset %}
+                <div class="border p-4 rounded mb-4">
+                    {{ form.as_p }}
+                    {% if references_formset.can_delete %}
+                        <div class="mt-2">
+                            {{ form.DELETE }}
+                            <label for="{{ form.DELETE.id_for_label }}" class="ml-2">Delete this entry</label>
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+        <button type="button" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-2" id="add-references">Add References</button>
+
+        <h3 class="text-xl font-bold mt-8 mb-4">Custom Sections</h3>
+        {{ custom_sections_formset.management_form }}
+        <div id="custom_sections-forms">
+            {% for form in custom_sections_formset %}
+                <div class="border p-4 rounded mb-4">
+                    {{ form.as_p }}
+                    {% if custom_sections_formset.can_delete %}
+                        <div class="mt-2">
+                            {{ form.DELETE }}
+                            <label for="{{ form.DELETE.id_for_label }}" class="ml-2">Delete this entry</label>
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+        <button type="button" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-2" id="add-custom_sections">Add Custom Sections</button>
+
+        <div class="mt-8">
+            <button type="submit" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                Save Changes
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    function addFormset(buttonId, formsetPrefix) {
+        const addButton = document.getElementById(buttonId);
+        const formContainer = document.getElementById(`${formsetPrefix}-forms`);
+        const totalForms = document.getElementById(`id_${formsetPrefix}-TOTAL_FORMS`);
+
+        addButton.addEventListener('click', function() {
+            const formCount = formContainer.children.length;
+            const newForm = formContainer.children[0].cloneNode(true);
+            
+            newForm.innerHTML = newForm.innerHTML.replace(new RegExp(formsetPrefix + '-0-', 'g'), `${formsetPrefix}-${formCount}-`);
+            newForm.innerHTML = newForm.innerHTML.replace(new RegExp(formsetPrefix + '-0_', 'g'), `${formsetPrefix}-${formCount}_`);
+            
+            formContainer.appendChild(newForm);
+            totalForms.value = formCount + 1;
+        });
+    }
+
+    addFormset('add-work-experience', 'work_experience');
+    addFormset('add-education', 'education');
+    addFormset('add-skills', 'skills');
+    addFormset('add-projects', 'projects');
+    addFormset('add-certifications', 'certifications');
+    addFormset('add-languages', 'languages');
+    addFormset('add-references', 'references');
+    addFormset('add-custom_sections', 'custom_sections');
+    // Add similar function calls for other formsets
+</script>
+{% endblock %}
+

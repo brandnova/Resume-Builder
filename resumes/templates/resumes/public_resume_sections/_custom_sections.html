@@ -1,0 +1,12 @@
+{% if resume.custom_sections.all %}
+<section class="mb-8">
+    {% for custom_section in resume.custom_sections.all %}
+    <div class="mb-6">
+        <h2 class="text-xl font-semibold border-b pb-2 mb-4">{{ custom_section.section_name }}</h2>
+        <div class="prose">
+            {{ custom_section.content|safe }}
+        </div>
+    </div>
+    {% endfor %}
+</section>
+{% endif %}
