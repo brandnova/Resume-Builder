@@ -1,7 +1,9 @@
+from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
 from django.contrib import messages
+from django.template.loader import render_to_string
 
 from .models import (
     Resume, PersonalInfo, WorkExperience, Education, 
@@ -11,6 +13,7 @@ from .forms import (
     CertificationForm, CustomSectionForm, LanguageForm, ReferenceForm, ResumeForm, PersonalInfoForm, WorkExperienceForm, 
     EducationForm, SkillForm, ProjectForm
 )
+
 
 @login_required
 def create_resume(request):
@@ -386,6 +389,8 @@ def delete_custom_section(request, resume_slug, custom_section_id):
 def resume_preview(request, resume_slug):
     """Preview the entire resume with all sections"""
     resume = get_object_or_404(Resume, slug=resume_slug, user=request.user)
+
+    domain = request.get_host() 
     
     # Fetch all related data
     personal_info = resume.personalinfo if hasattr(resume, 'personalinfo') else None
@@ -413,7 +418,8 @@ def resume_preview(request, resume_slug):
         'languages': languages,
         'references': references,
         'custom_sections': custom_sections,
-        'section': 'preview'
+        'section': 'preview',
+        'domain': domain,
     })
 
 @login_required
@@ -452,6 +458,202 @@ def public_resume_view(request, slug):
         'references': references,
         'custom_sections': custom_sections
     })
+
+
+@login_required
+def edit_resume(request, resume_slug):
+    resume = get_object_or_404(Resume, slug=resume_slug, user=request.user)
+    
+    def process_form(form_class, form_data, resume_attr=None, success_message=None):
+        """
+        Helper function to process form submissions with error handling
+        """
+        form = form_class(form_data)
+        if form.is_valid():
+            instance = form.save(commit=False)
+            if resume_attr:
+                setattr(instance, resume_attr, resume)
+            instance.save()
+            
+            # Prepare success response
+            response_data = {
+                'success': True,
+                'message': success_message or 'Section updated successfully.'
+            }
+            
+            return response_data
+        else:
+            # Prepare error response with form errors
+            response_data = {
+                'success': False,
+                'errors': form.errors
+            }
+            return response_data
+
+    # Handle AJAX requests
+    if request.method == 'POST' and request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        try:
+            # Handle different section submissions
+            if 'update_title' in request.POST:
+                form = ResumeForm(request.POST, instance=resume)
+                if form.is_valid():
+                    form.save()
+                    return JsonResponse({'success': True, 'message': 'Resume title updated successfully.'})
+                else:
+                    return JsonResponse({'success': False, 'errors': form.errors})
+
+            elif 'update_personal_info' in request.POST:
+                personal_info = resume.personalinfo if hasattr(resume, 'personalinfo') else None
+                form = PersonalInfoForm(request.POST, instance=personal_info)
+                if form.is_valid():
+                    instance = form.save(commit=False)
+                    instance.resume = resume
+                    instance.save()
+                    return JsonResponse({'success': True, 'message': 'Personal information updated successfully.'})
+                else:
+                    return JsonResponse({'success': False, 'errors': form.errors})
+
+            elif 'add_work_experience' in request.POST:
+                result = process_form(
+                    WorkExperienceForm, 
+                    request.POST, 
+                    'resume', 
+                    'Work experience added successfully.'
+                )
+                return JsonResponse(result)
+
+            elif 'add_education' in request.POST:
+                result = process_form(
+                    EducationForm, 
+                    request.POST, 
+                    'resume', 
+                    'Education added successfully.'
+                )
+                return JsonResponse(result)
+
+            elif 'add_skill' in request.POST:
+                result = process_form(
+                    SkillForm, 
+                    request.POST, 
+                    'resume', 
+                    'Skill added successfully.'
+                )
+                return JsonResponse(result)
+
+            elif 'add_project' in request.POST:
+                result = process_form(
+                    ProjectForm, 
+                    request.POST, 
+                    'resume', 
+                    'Project added successfully.'
+                )
+                return JsonResponse(result)
+
+            elif 'add_certification' in request.POST:
+                result = process_form(
+                    CertificationForm, 
+                    request.POST, 
+                    'resume', 
+                    'Certification added successfully.'
+                )
+                return JsonResponse(result)
+
+            elif 'add_language' in request.POST:
+                result = process_form(
+                    LanguageForm, 
+                    request.POST, 
+                    'resume', 
+                    'Language added successfully.'
+                )
+                return JsonResponse(result)
+
+            elif 'add_reference' in request.POST:
+                result = process_form(
+                    ReferenceForm, 
+                    request.POST, 
+                    'resume', 
+                    'Reference added successfully.'
+                )
+                return JsonResponse(result)
+
+            elif 'add_custom_section' in request.POST:
+                result = process_form(
+                    CustomSectionForm, 
+                    request.POST, 
+                    'resume', 
+                    'Custom section added successfully.'
+                )
+                return JsonResponse(result)
+
+            # Handle deletion requests
+            elif 'delete_work_experience' in request.POST:
+                exp_id = request.POST.get('experience_id')
+                try:
+                    exp = WorkExperience.objects.get(id=exp_id, resume=resume)
+                    exp.delete()
+                    return JsonResponse({'success': True, 'message': 'Work experience deleted successfully.'})
+                except WorkExperience.DoesNotExist:
+                    return JsonResponse({'success': False, 'message': 'Work experience not found.'})
+
+            # Similar deletion handlers for other sections...
+
+            return JsonResponse({'success': False, 'message': 'Invalid request.'})
+
+        except Exception as e:
+            # Catch-all error handler
+            return JsonResponse({
+                'success': False, 
+                'message': f'An unexpected error occurred: {str(e)}'
+            })
+
+    # Regular page load
+    # Fetch all related data (same as before)
+    personal_info = resume.personalinfo if hasattr(resume, 'personalinfo') else None
+    work_experiences = resume.workexperience_set.all()
+    education_entries = resume.education_set.all()
+    skills = resume.skill_set.all()
+    projects = resume.project_set.all()
+    certifications = resume.certification_set.all()
+    languages = resume.language_set.all()
+    references = resume.references.all()
+    custom_sections = resume.custom_sections.all()
+
+    # Create forms for each section
+    form = ResumeForm(instance=resume)
+    personal_info_form = PersonalInfoForm(instance=personal_info) if personal_info else PersonalInfoForm()
+    work_experience_form = WorkExperienceForm()
+    education_form = EducationForm()
+    skill_form = SkillForm()
+    project_form = ProjectForm()
+    certification_form = CertificationForm()
+    language_form = LanguageForm()
+    reference_form = ReferenceForm()
+    custom_section_form = CustomSectionForm()
+
+    context = {
+        'resume': resume,
+        'form': form,
+        'personal_info_form': personal_info_form,
+        'work_experience_form': work_experience_form,
+        'education_form': education_form,
+        'skill_form': skill_form,
+        'project_form': project_form,
+        'certification_form': certification_form,
+        'language_form': language_form,
+        'reference_form': reference_form,
+        'custom_section_form': custom_section_form,
+        'personal_info': personal_info,
+        'work_experiences': work_experiences,
+        'education_entries': education_entries,
+        'skills': skills,
+        'projects': projects,
+        'certifications': certifications,
+        'languages': languages,
+        'references': references,
+        'custom_sections': custom_sections,
+    }
+
+    return render(request, 'resumes/edit_resume.html', context)
 
 @login_required
 def delete_resume(request, resume_slug):

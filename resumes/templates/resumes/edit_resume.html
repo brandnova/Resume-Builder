@@ -1,191 +1,534 @@
-{% extends 'accounts/dashboard_base.html' %}
-{% load static %}
+{% extends 'resumes/base.html' %}
 
 {% block extra_head %}
-{{ custom_section_formset.media }}
+<script src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.x.x/dist/alpine.min.js" defer></script>
+<style>
+    .section-card {
+        @apply bg-white rounded-lg shadow-sm border border-gray-100 p-6 mb-6 transition-all duration-200;
+    }
+    
+    .section-card:hover {
+        @apply shadow-md border-gray-200;
+    }
+    
+    .section-header {
+        @apply flex items-center justify-between cursor-pointer p-2 rounded-t-lg;
+    }
+    
+    .section-content {
+        @apply mt-4 space-y-4;
+    }
+    
+    .form-group {
+        @apply space-y-2;
+    }
+    
+    .input-field {
+        @apply w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500;
+    }
+    
+    .btn-primary {
+        @apply bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium;
+    }
+    
+    .btn-danger {
+        @apply text-red-600 hover:text-red-700 font-medium;
+    }
+    
+    .item-card {
+        @apply bg-gray-50 rounded-lg p-4 relative border border-gray-100;
+    }
+    
+    .notification {
+        @apply fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg transform transition-all duration-300;
+    }
+    
+    @media (max-width: 768px) {
+        .section-card {
+            @apply mx-4;
+        }
+    }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto">
-    <h2 class="text-2xl font-bold mb-4">Edit Resume</h2>
-    <form method="post" enctype="multipart/form-data" class="space-y-8">
-        {% csrf_token %}
-        {{ form.as_p }}
+<div x-data="{ 
+    activeSection: null,
+    toggleSection(section) {
+        this.activeSection = this.activeSection === section ? null : section;
+    }
+}" class="max-w-4xl mx-auto py-8 px-4">
+    
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-8">
+        <h1 class="text-3xl font-bold text-gray-900">{{ resume.title }}</h1>
+        <button class="btn-primary">
+            Preview Resume
+        </button>
+    </div>
 
-        <h3 class="text-xl font-bold mt-8 mb-4">Personal Information</h3>
-        {{ personal_info_form.as_p }}
+    <!-- Progress Bar -->
+    <div class="mb-8">
+        <div class="h-2 bg-gray-200 rounded-full">
+            <div class="h-2 bg-blue-600 rounded-full" style="width: 65%"></div>
+        </div>
+        <div class="mt-2 text-sm text-gray-600">65% Complete</div>
+    </div>
 
-        <h3 class="text-xl font-bold mt-8 mb-4">Work Experience</h3>
-        {{ work_experience_formset.management_form }}
-        <div id="work-experience-forms">
-            {% for form in work_experience_formset %}
-                <div class="border p-4 rounded mb-4">
-                    {{ form.as_p }}
-                    {% if work_experience_formset.can_delete %}
-                        <div class="mt-2">
-                            {{ form.DELETE }}
-                            <label for="{{ form.DELETE.id_for_label }}" class="ml-2">Delete this entry</label>
-                        </div>
-                    {% endif %}
+    <!-- Sections -->
+    <div class="space-y-6">
+        <!-- Personal Information Section -->
+        <div class="section-card" x-data="{ open: false }">
+            <div class="section-header" @click="open = !open">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-user text-blue-600"></i>
+                    </div>
+                    <h2 class="text-xl font-semibold text-gray-900">Personal Information</h2>
                 </div>
-            {% endfor %}
+                <span class="transform transition-transform" :class="{ 'rotate-180': open }">
+                    <i class="fas fa-chevron-down"></i>
+                </span>
+            </div>
+            
+            <div x-show="open" x-transition class="section-content">
+                <form method="post" class="space-y-6" @submit.prevent="handleFormSubmit">
+                    {% csrf_token %}
+                    {{ personal_info_form.as_p }}
+                    <button type="submit" class="btn-primary">Update Information</button>
+                </form>
+            </div>
         </div>
-        <button type="button" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-2" id="add-work-experience">Add Work Experience</button>
 
-        <h3 class="text-xl font-bold mt-8 mb-4">Education</h3>
-        {{ education_formset.management_form }}
-        <div id="education-forms">
-            {% for form in education_formset %}
-                <div class="border p-4 rounded mb-4">
-                    {{ form.as_p }}
-                    {% if education_formset.can_delete %}
-                        <div class="mt-2">
-                            {{ form.DELETE }}
-                            <label for="{{ form.DELETE.id_for_label }}" class="ml-2">Delete this entry</label>
-                        </div>
-                    {% endif %}
+        <!-- Work Experience Section -->
+        <div class="section-card" x-data="{ open: false }">
+            <div class="section-header" @click="open = !open">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-briefcase text-blue-600"></i>
+                    </div>
+                    <h2 class="text-xl font-semibold text-gray-900">Work Experience</h2>
                 </div>
-            {% endfor %}
+                <span class="transform transition-transform" :class="{ 'rotate-180': open }">
+                    <i class="fas fa-chevron-down"></i>
+                </span>
+            </div>
+            
+            <div x-show="open" x-transition class="section-content">
+                {% for experience in work_experiences %}
+                    <div class="item-card">
+                        <h3 class="text-lg font-semibold">{{ experience.job_title }} at {{ experience.company }}</h3>
+                        <p class="text-gray-600">{{ experience.start_date }} - {{ experience.end_date|default:"Present" }}</p>
+                        <p>{{ experience.description }}</p>
+                        <form method="post" class="absolute top-2 right-2">
+                            {% csrf_token %}
+                            <input type="hidden" name="experience_id" value="{{ experience.id }}">
+                            <button type="submit" name="delete_work_experience" class="btn-danger">Delete</button>
+                        </form>
+                    </div>
+                {% endfor %}
+                
+                <form method="post" class="form-group">
+                    {% csrf_token %}
+                    <h3 class="text-lg font-semibold mb-4">Add New Work Experience</h3>
+                    {{ work_experience_form.as_p }}
+                    <button type="submit" name="add_work_experience" class="btn-primary">
+                        Add Work Experience
+                    </button>
+                </form>
+            </div>
         </div>
-        <button type="button" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-2" id="add-education">Add Education</button>
 
-        <h3 class="text-xl font-bold mt-8 mb-4">Skills</h3>
-        {{ skills_formset.management_form }}
-        <div id="skills-forms">
-            {% for form in skills_formset %}
-                <div class="border p-4 rounded mb-4">
-                    {{ form.as_p }}
-                    {% if skills_formset.can_delete %}
-                        <div class="mt-2">
-                            {{ form.DELETE }}
-                            <label for="{{ form.DELETE.id_for_label }}" class="ml-2">Delete this entry</label>
-                        </div>
-                    {% endif %}
+        <!-- Education Section -->
+        <div class="section-card" x-data="{ open: false }">
+            <div class="section-header" @click="open = !open">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-graduation-cap text-blue-600"></i>
+                    </div>
+                    <h2 class="text-xl font-semibold text-gray-900">Education</h2>
                 </div>
-            {% endfor %}
+                <span class="transform transition-transform" :class="{ 'rotate-180': open }">
+                    <i class="fas fa-chevron-down"></i>
+                </span>
+            </div>
+            
+            <div x-show="open" x-transition class="section-content">
+                {% for edu in education_entries %}
+                    <div class="item-card">
+                        <h3 class="text-lg font-semibold">{{ edu.degree }} in {{ edu.major }}</h3>
+                        <p class="text-gray-600">{{ edu.institution }}, {{ edu.location }}</p>
+                        <p>{{ edu.start_date }} - {{ edu.end_date|default:"Present" }}</p>
+                        <form method="post" class="absolute top-2 right-2">
+                            {% csrf_token %}
+                            <input type="hidden" name="education_id" value="{{ edu.id }}">
+                            <button type="submit" name="delete_education" class="btn-danger">Delete</button>
+                        </form>
+                    </div>
+                {% endfor %}
+                
+                <form method="post" class="form-group">
+                    {% csrf_token %}
+                    <h3 class="text-lg font-semibold mb-4">Add New Education</h3>
+                    {{ education_form.as_p }}
+                    <button type="submit" name="add_education" class="btn-primary">
+                        Add Education
+                    </button>
+                </form>
+            </div>
         </div>
-        <button type="button" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-2" id="add-skills">Add Skills</button>
 
-        <h3 class="text-xl font-bold mt-8 mb-4">Projects</h3>
-        {{ projects_formset.management_form }}
-        <div id="projects-forms">
-            {% for form in projects_formset %}
-                <div class="border p-4 rounded mb-4">
-                    {{ form.as_p }}
-                    {% if projects_formset.can_delete %}
-                        <div class="mt-2">
-                            {{ form.DELETE }}
-                            <label for="{{ form.DELETE.id_for_label }}" class="ml-2">Delete this entry</label>
-                        </div>
-                    {% endif %}
+        <!-- Skills Section -->
+        <div class="section-card" x-data="{ open: false }">
+            <div class="section-header" @click="open = !open">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-tools text-blue-600"></i>
+                    </div>
+                    <h2 class="text-xl font-semibold text-gray-900">Skills</h2>
                 </div>
-            {% endfor %}
+                <span class="transform transition-transform" :class="{ 'rotate-180': open }">
+                    <i class="fas fa-chevron-down"></i>
+                </span>
+            </div>
+            
+            <div x-show="open" x-transition class="section-content">
+                {% for skill in skills %}
+                    <div class="flex justify-between items-center bg-gray-50 p-3 rounded-lg">
+                        <span>{{ skill.name }} - {{ skill.level }}</span>
+                        <form method="post" class="inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="skill_id" value="{{ skill.id }}">
+                            <button type="submit" name="delete_skill" class="btn-danger">Delete</button>
+                        </form>
+                    </div>
+                {% endfor %}
+                
+                <form method="post" class="form-group">
+                    {% csrf_token %}
+                    <h3 class="text-lg font-semibold mb-4">Add New Skill</h3>
+                    {{ skill_form.as_p }}
+                    <button type="submit" name="add_skill" class="btn-primary">
+                        Add Skill
+                    </button>
+                </form>
+            </div>
         </div>
-        <button type="button" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-2" id="add-projects">Add Projects</button>
 
-        <h3 class="text-xl font-bold mt-8 mb-4">Certifications</h3>
-        {{ certifications_formset.management_form }}
-        <div id="certifications-forms">
-            {% for form in certifications_formset %}
-                <div class="border p-4 rounded mb-4">
-                    {{ form.as_p }}
-                    {% if certifications_formset.can_delete %}
-                        <div class="mt-2">
-                            {{ form.DELETE }}
-                            <label for="{{ form.DELETE.id_for_label }}" class="ml-2">Delete this entry</label>
-                        </div>
-                    {% endif %}
+        <!-- Projects Section -->
+        <div class="section-card" x-data="{ open: false }">
+            <div class="section-header" @click="open = !open">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-project-diagram text-blue-600"></i>
+                    </div>
+                    <h2 class="text-xl font-semibold text-gray-900">Projects</h2>
                 </div>
-            {% endfor %}
+                <span class="transform transition-transform" :class="{ 'rotate-180': open }">
+                    <i class="fas fa-chevron-down"></i>
+                </span>
+            </div>
+            
+            <div x-show="open" x-transition class="section-content">
+                {% for project in projects %}
+                    <div class="item-card">
+                        <h3 class="text-lg font-semibold">{{ project.name }}</h3>
+                        <p>{{ project.description }}</p>
+                        <p class="text-gray-600">Technologies: {{ project.technologies }}</p>
+                        <form method="post" class="absolute top-2 right-2">
+                            {% csrf_token %}
+                            <input type="hidden" name="project_id" value="{{ project.id }}">
+                            <button type="submit" name="delete_project" class="btn-danger">Delete</button>
+                        </form>
+                    </div>
+                {% endfor %}
+                
+                <form method="post" class="form-group">
+                    {% csrf_token %}
+                    <h3 class="text-lg font-semibold mb-4">Add New Project</h3>
+                    {{ project_form.as_p }}
+                    <button type="submit" name="add_project" class="btn-primary">
+                        Add Project
+                    </button>
+                </form>
+            </div>
         </div>
-        <button type="button" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-2" id="add-certifications">Add Certifications</button>
 
-        <h3 class="text-xl font-bold mt-8 mb-4">Languages</h3>
-        {{ languages_formset.management_form }}
-        <div id="languages-forms">
-            {% for form in languages_formset %}
-                <div class="border p-4 rounded mb-4">
-                    {{ form.as_p }}
-                    {% if languages_formset.can_delete %}
-                        <div class="mt-2">
-                            {{ form.DELETE }}
-                            <label for="{{ form.DELETE.id_for_label }}" class="ml-2">Delete this entry</label>
-                        </div>
-                    {% endif %}
+        <!-- Certifications Section -->
+        <div class="section-card" x-data="{ open: false }">
+            <div class="section-header" @click="open = !open">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-certificate text-blue-600"></i>
+                    </div>
+                    <h2 class="text-xl font-semibold text-gray-900">Certifications</h2>
                 </div>
-            {% endfor %}
+                <span class="transform transition-transform" :class="{ 'rotate-180': open }">
+                    <i class="fas fa-chevron-down"></i>
+                </span>
+            </div>
+            
+            <div x-show="open" x-transition class="section-content">
+                {% for cert in certifications %}
+                    <div class="item-card">
+                        <h3 class="text-lg font-semibold">{{ cert.name }}</h3>
+                        <p class="text-gray-600">{{ cert.organization }}</p>
+                        <p>Obtained: {{ cert.date_obtained }}</p>
+                        <form method="post" class="absolute top-2 right-2">
+                            {% csrf_token %}
+                            <input type="hidden" name="certification_id" value="{{ cert.id }}">
+                            <button type="submit" name="delete_certification" class="btn-danger">Delete</button>
+                        </form>
+                    </div>
+                {% endfor %}
+                
+                <form method="post" class="form-group">
+                    {% csrf_token %}
+                    <h3 class="text-lg font-semibold mb-4">Add New Certification</h3>
+                    {{ certification_form.as_p }}
+                    <button type="submit" name="add_certification" class="btn-primary">
+                        Add Certification
+                    </button>
+                </form>
+            </div>
         </div>
-        <button type="button" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-2" id="add-languages">Add Languages</button>
 
-        <h3 class="text-xl font-bold mt-8 mb-4">References</h3>
-        {{ references_formset.management_form }}
-        <div id="references-forms">
-            {% for form in references_formset %}
-                <div class="border p-4 rounded mb-4">
-                    {{ form.as_p }}
-                    {% if references_formset.can_delete %}
-                        <div class="mt-2">
-                            {{ form.DELETE }}
-                            <label for="{{ form.DELETE.id_for_label }}" class="ml-2">Delete this entry</label>
-                        </div>
-                    {% endif %}
+        <!-- Languages Section -->
+        <div class="section-card" x-data="{ open: false }">
+            <div class="section-header" @click="open = !open">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-language text-blue-600"></i>
+                    </div>
+                    <h2 class="text-xl font-semibold text-gray-900">Languages</h2>
                 </div>
-            {% endfor %}
+                <span class="transform transition-transform" :class="{ 'rotate-180': open }">
+                    <i class="fas fa-chevron-down"></i>
+                </span>
+            </div>
+            
+            <div x-show="open" x-transition class="section-content">
+                {% for lang in languages %}
+                    <div class="flex justify-between items-center bg-gray-50 p-3 rounded-lg">
+                        <span>{{ lang.name }} - {{ lang.proficiency }}</span>
+                        <form method="post" class="inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="language_id" value="{{ lang.id }}">
+                            <button type="submit" name="delete_language" class="btn-danger">Delete</button>
+                        </form>
+                    </div>
+                {% endfor %}
+                
+                <form method="post" class="form-group">
+                    {% csrf_token %}
+                    <h3 class="text-lg font-semibold mb-4">Add New Language</h3>
+                    {{ language_form.as_p }}
+                    <button type="submit" name="add_language" class="btn-primary">
+                        Add Language
+                    </button>
+                </form>
+            </div>
         </div>
-        <button type="button" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-2" id="add-references">Add References</button>
 
-        <h3 class="text-xl font-bold mt-8 mb-4">Custom Sections</h3>
-        {{ custom_sections_formset.management_form }}
-        <div id="custom_sections-forms">
-            {% for form in custom_sections_formset %}
-                <div class="border p-4 rounded mb-4">
-                    {{ form.as_p }}
-                    {% if custom_sections_formset.can_delete %}
-                        <div class="mt-2">
-                            {{ form.DELETE }}
-                            <label for="{{ form.DELETE.id_for_label }}" class="ml-2">Delete this entry</label>
-                        </div>
-                    {% endif %}
+        <!-- References Section -->
+        <div class="section-card" x-data="{ open: false }">
+            <div class="section-header" @click="open = !open">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-users text-blue-600"></i>
+                    </div>
+                    <h2 class="text-xl font-semibold text-gray-900">References</h2>
                 </div>
-            {% endfor %}
+                <span class="transform transition-transform" :class="{ 'rotate-180': open }">
+                    <i class="fas fa-chevron-down"></i>
+                </span>
+            </div>
+            
+            <div x-show="open" x-transition class="section-content">
+                {% for ref in references %}
+                    <div class="item-card">
+                        <h3 class="text-lg font-semibold">{{ ref.reference_name }}</h3>
+                        <p class="text-gray-600">{{ ref.position }} at {{ ref.organization }}</p>
+                        <p>Email: {{ ref.email }}</p>
+                        <p>Phone: {{ ref.phone }}</p>
+                        <form method="post" class="absolute top-2 right-2">
+                            {% csrf_token %}
+                            <input type="hidden" name="reference_id" value="{{ ref.id }}">
+                            <button type="submit" name="delete_reference" class="btn-danger">Delete</button>
+                        </form>
+                    </div>
+                {% endfor %}
+                
+                <form method="post" class="form-group">
+                    {% csrf_token %}
+                    <h3 class="text-lg font-semibold mb-4">Add New Reference</h3>
+                    {{ reference_form.as_p }}
+                    <button type="submit" name="add_reference" class="btn-primary">
+                        Add Reference
+                    </button>
+                </form>
+            </div>
         </div>
-        <button type="button" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-2" id="add-custom_sections">Add Custom Sections</button>
 
-        <div class="mt-8">
-            <button type="submit" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
-                Save Changes
-            </button>
+        <!-- Custom Sections -->
+        <div class="section-card" x-data="{ open: false }">
+            <div class="section-header" @click="open = !open">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-puzzle-piece text-blue-600"></i>
+                    </div>
+                    <h2 class="text-xl font-semibold text-gray-900">Custom Sections</h2>
+                </div>
+                <span class="transform transition-transform" :class="{ 'rotate-180': open }">
+                    <i class="fas fa-chevron-down"></i>
+                </span>
+            </div>
+            
+            <div x-show="open" x-transition class="section-content">
+                {% for section in custom_sections %}
+                    <div class="item-card">
+                        <h3 class="text-lg font-semibold">{{ section.section_name }}</h3>
+                        <div>{{ section.content|safe }}</div>
+                        <form method="post" class="absolute top-2 right-2">
+                            {% csrf_token %}
+                            <input type="hidden" name="custom_section_id" value="{{ section.id }}">
+                            <button type="submit" name="delete_custom_section" class="btn-danger">Delete</button>
+                        </form>
+                    </div>
+                {% endfor %}
+                
+                <form method="post" class="form-group">
+                    {% csrf_token %}
+                    <h3 class="text-lg font-semibold mb-4">Add New Custom Section</h3>
+                    {{ custom_section_form.as_p }}
+                    <button type="submit" name="add_custom_section" class="btn-primary">
+                        Add Custom Section
+                    </button>
+                </form>
+            </div>
         </div>
-    </form>
+
+
+    </div>
 </div>
 
-<script>
-    function addFormset(buttonId, formsetPrefix) {
-        const addButton = document.getElementById(buttonId);
-        const formContainer = document.getElementById(`${formsetPrefix}-forms`);
-        const totalForms = document.getElementById(`id_${formsetPrefix}-TOTAL_FORMS`);
+<!-- Floating Action Button for mobile -->
+<div class="fixed bottom-6 right-6 md:hidden">
+    <button class="btn-primary rounded-full w-14 h-14 flex items-center justify-center shadow-lg">
+        <i class="fas fa-plus"></i>
+    </button>
+</div>
 
-        addButton.addEventListener('click', function() {
-            const formCount = formContainer.children.length;
-            const newForm = formContainer.children[0].cloneNode(true);
-            
-            newForm.innerHTML = newForm.innerHTML.replace(new RegExp(formsetPrefix + '-0-', 'g'), `${formsetPrefix}-${formCount}-`);
-            newForm.innerHTML = newForm.innerHTML.replace(new RegExp(formsetPrefix + '-0_', 'g'), `${formsetPrefix}-${formCount}_`);
-            
-            formContainer.appendChild(newForm);
-            totalForms.value = formCount + 1;
+<!-- Toast Notifications -->
+<div id="notifications" class="fixed top-4 right-4 z-50 space-y-4"></div>
+
+    <script>
+        // Function to save form data
+        document.addEventListener('DOMContentLoaded', function() {
+
+            // Enhanced notification system
+            function showNotification(message, type = 'success') {
+                const notifications = document.getElementById('notifications');
+                const toast = document.createElement('div');
+                
+                toast.className = `notification ${
+                    type === 'success' ? 'bg-green-500' : 'bg-red-500'
+                } text-white`;
+                
+                toast.innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
+                        <span>${message}</span>
+                    </div>
+                `;
+                
+                notifications.appendChild(toast);
+                
+                setTimeout(() => {
+                    toast.classList.add('opacity-0', 'translate-x-full');
+                    setTimeout(() => toast.remove(), 300);
+                }, 3000);
+            }
+
+            // Function to handle form submission via AJAX
+            function handleFormSubmit(event) {
+                event.preventDefault();
+                const form = event.target;
+                const formData = new FormData(form);
+        
+                // Determine the action based on the submit button name
+                const submitButton = form.querySelector('button[type="submit"]');
+                const actionName = submitButton ? submitButton.getAttribute('name') : null;
+        
+                // Add the action name to the form data
+                if (actionName) {
+                    formData.append(actionName, 'true');
+                }
+        
+                fetch(form.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        // Show success message
+                        showNotification('Section updated successfully!', 'success');
+                        
+                        // Optionally, you can refresh the section or update specific elements
+                        if (data.html) {
+                            // If the server returns updated HTML for a specific section
+                            const sectionContainer = form.closest('.mb-6');
+                            if (sectionContainer) {
+                                sectionContainer.innerHTML = data.html;
+                            }
+                        }
+                    } else {
+                        // Show error message
+                        showNotification(data.message || 'Error updating section. Please try again.', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('An error occurred while saving. Please try again.', 'error');
+                });
+            }
+        
+            // Notification function
+            function showNotification(message, type = 'info') {
+                // Create notification element
+                const notification = document.createElement('div');
+                notification.className = `fixed top-4 right-4 z-50 p-4 rounded shadow-lg ${
+                    type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+                }`;
+                notification.textContent = message;
+        
+                // Add to body
+                document.body.appendChild(notification);
+        
+                // Remove after 3 seconds
+                setTimeout(() => {
+                    notification.classList.add('fade-out');
+                    setTimeout(() => {
+                        document.body.removeChild(notification);
+                    }, 500);
+                }, 3000);
+            }
+        
+            // Add event listeners to all forms
+            document.querySelectorAll('form').forEach(form => {
+                form.addEventListener('submit', handleFormSubmit);
+            });
         });
-    }
-
-    addFormset('add-work-experience', 'work_experience');
-    addFormset('add-education', 'education');
-    addFormset('add-skills', 'skills');
-    addFormset('add-projects', 'projects');
-    addFormset('add-certifications', 'certifications');
-    addFormset('add-languages', 'languages');
-    addFormset('add-references', 'references');
-    addFormset('add-custom_sections', 'custom_sections');
-    // Add similar function calls for other formsets
-</script>
+    </script>
 {% endblock %}
 

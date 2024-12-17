@@ -3,40 +3,229 @@
 {% block title %}Dashboard - Resume Builder{% endblock %}
 
 {% block content %}
-<div class="bg-white p-8 rounded shadow-md">
-    <h2 class="text-2xl font-bold mb-6">Welcome to your Dashboard</h2>
-    <p class="mb-4">Here is an overview of your resume progress:</p>
+<div x-data="{ 
+    activeTab: 'resumes',
+    stats: {
+        totalResumes: {{ resumes|length }},
+        completedResumes: {{ completed_resumes_count }},
+        recentActivity: 5
+    }
+}" class="space-y-6">
+    
+    <!-- Stats Overview -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Total Resumes -->
+        <div class="bg-white rounded-xl shadow-sm p-6 hover-scale">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm">Total Resumes</p>
+                    <h3 class="text-3xl font-bold text-gray-800" x-text="stats.totalResumes">0</h3>
+                </div>
+                <div class="bg-blue-100 p-3 rounded-full">
+                    <i class="fas fa-file-alt text-blue-600 text-xl"></i>
+                </div>
+            </div>
+            <div class="mt-4">
+                <div class="flex items-center">
+                    <span class="text-green-500 text-sm">
+                        <i class="fas fa-arrow-up mr-1"></i>12%
+                    </span>
+                    <span class="text-gray-400 text-sm ml-2">from last month</span>
+                </div>
+            </div>
+        </div>
 
-    {% if resumes %}
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {% for resume in resumes %}
-                <div class="p-6 border rounded shadow-sm">
-                    <h3 class="text-xl font-semibold">{{ resume.title }}</h3>
-                    <p class="text-gray-500 text-sm mb-2">
-                        Created on: {{ resume.created_at|date:"M d, Y" }}
-                    </p>
-                    <p class="text-gray-700 mb-4">
-                        Last updated: {{ resume.updated_at|date:"M d, Y" }}
-                    </p>
-                    <p>
-                        Status: 
-                        {% if resume.is_complete %}
-                            <span class="text-green-600 font-bold">Complete</span>
-                        {% else %}
-                            <span class="text-red-600 font-bold">In Progress</span>
-                        {% endif %}
-                    </p>
-                    <div class="mt-4">
-                        <a href="{% url 'resume_preview' resume.slug %}" class="text-blue-600 hover:underline">Preview</a> |
-                        {% comment %} <a href="{% url 'resume_edit' resume.slug %}" class="text-blue-600 hover:underline">Edit</a> | {% endcomment %}
-                        <a href="{% url 'delete_resume' resume.slug %}" class="text-red-600 hover:underline"
-                           onclick="return confirm('Are you sure you want to delete this resume?')">Delete</a>
+        <!-- Completed Resumes -->
+        <div class="bg-white rounded-xl shadow-sm p-6 hover-scale">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm">Completed Resumes</p>
+                    <h3 class="text-3xl font-bold text-gray-800" x-text="stats.completedResumes">0</h3>
+                </div>
+                <div class="bg-green-100 p-3 rounded-full">
+                    <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                </div>
+            </div>
+            <div class="mt-4">
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div class="bg-green-600 rounded-full h-2"
+                         :style="`width: ${(stats.completedResumes/stats.totalResumes) * 100}%`"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="bg-white rounded-xl shadow-sm p-6 hover-scale">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm">Recent Activity</p>
+                    <h3 class="text-3xl font-bold text-gray-800" x-text="stats.recentActivity">0</h3>
+                </div>
+                <div class="bg-purple-100 p-3 rounded-full">
+                    <i class="fas fa-bolt text-purple-600 text-xl"></i>
+                </div>
+            </div>
+            <div class="mt-4">
+                <div class="flex items-center">
+                    <span class="text-purple-500 text-sm">Active</span>
+                    <span class="text-gray-400 text-sm ml-2">in the last 24 hours</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Tabs -->
+    <div class="bg-white rounded-xl shadow-sm">
+        <!-- Tab Navigation -->
+        <div class="border-b border-gray-200">
+            <nav class="flex space-x-8 px-6" aria-label="Tabs">
+                <button @click="activeTab = 'resumes'"
+                        :class="{'border-blue-500 text-blue-600': activeTab === 'resumes',
+                                'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'resumes'}"
+                        class="py-4 px-1 border-b-2 font-medium text-sm">
+                    Your Resumes
+                </button>
+                <button @click="activeTab = 'activity'"
+                        :class="{'border-blue-500 text-blue-600': activeTab === 'activity',
+                                'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'activity'}"
+                        class="py-4 px-1 border-b-2 font-medium text-sm">
+                    Recent Activity
+                </button>
+            </nav>
+        </div>
+
+        <!-- Resumes Tab Content -->
+        <div x-show="activeTab === 'resumes'" x-transition class="p-6">
+            {% if resumes %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for resume in resumes %}
+                <div class="group relative bg-white border rounded-xl shadow-sm hover:shadow-md transition-all duration-200 hover-scale">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-xl font-semibold text-gray-800">{{ resume.title }}</h3>
+                            <span class="px-3 py-1 rounded-full text-xs font-medium 
+                                {% if resume.is_complete %}bg-green-100 text-green-800
+                                {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                {{ resume.is_complete|yesno:"Complete,In Progress" }}
+                            </span>
+                        </div>
+                    
+                        <div class="space-y-2 text-sm text-gray-500">
+                            <p class="flex items-center">
+                                <i class="far fa-calendar-alt w-5"></i>
+                                <span>Created: {{ resume.created_at|date:"M d, Y" }}</span>
+                            </p>
+                            <p class="flex items-center">
+                                <i class="far fa-clock w-5"></i>
+                                <span>Updated: {{ resume.updated_at|date:"M d, Y" }}</span>
+                            </p>
+                        </div>
+                    
+                        <div class="mt-6 flex space-x-3">
+                            <a href="{% url 'resume_preview' resume.slug %}" 
+                                class="flex-1 inline-flex justify-center items-center px-4 py-2 border border-blue-600 rounded-lg text-sm font-medium text-blue-600 hover:bg-blue-50 transition-colors">
+                                <i class="far fa-eye mr-2"></i>
+                                Preview
+                            </a>
+                            <a href="{% url 'public_resume_view' resume.slug %}" 
+                                class="flex-1 inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors" 
+                                id="viewResumeLink">
+                                <i class="fas fa-link mr-1"></i>
+                                View Resume
+                            </a>
+                        </div>
+                    
+                        <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div x-data="{ open: false }" class="relative">
+                                <button @click="open = !open" 
+                                        class="p-2 hover:bg-gray-100 rounded-full">
+                                    <i class="fas fa-ellipsis-v text-gray-500"></i>
+                                </button>
+                    
+                                <div x-show="open" 
+                                     @click.away="open = false"
+                                     x-transition
+                                     class="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
+                                    <div class="py-1">
+                                        <a href="{% url 'resume_preview' resume.slug %}" 
+                                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                            <i class="far fa-eye mr-2"></i>Preview
+                                        </a>
+                                        <a href="{% url 'edit_resume' resume.slug %}"
+                                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                            <i class="far fa-edit mr-2"></i>Edit
+                                        </a>
+                                        <a data-copy="{{ domain }}{% url 'public_resume_view' resume.slug %}" 
+                                                class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer" 
+                                                id="copyLinkButton">
+                                            <i class="far fa-copy mr-2"></i>Copy Link
+                                        </a>
+                                        <a href="{% url 'delete_resume' resume.slug %}"
+                                            onclick="return confirm('Are you sure you want to delete this resume?')"
+                                            class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                                            <i class="far fa-trash-alt mr-2"></i>Delete
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Copy Link Toast Notification -->
+                    <div id="toast" 
+                        class="fixed bottom-4 right-4 bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg hidden">
+                        Link copied to clipboard!
+                    </div>
+                    
+                    <script>
+                        document.querySelectorAll('[data-copy]').forEach(button => {
+                            button.addEventListener('click', () => {
+                                navigator.clipboard.writeText(button.dataset.copy);
+                                const toast = document.getElementById('toast');
+                                toast.classList.remove('hidden');
+                                setTimeout(() => toast.classList.add('hidden'), 3000);
+                            });
+                        });
+                    </script>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-12">
+                <div class="mb-4">
+                    <i class="far fa-file-alt text-6xl text-gray-300"></i>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">No resumes yet</h3>
+                <p class="text-gray-500 mb-6">Create your first resume and start your journey!</p>
+                <a href="{% url 'create_resume' %}"
+                   class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-plus mr-2"></i>
+                    Create New Resume
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Activity Tab Content -->
+        <div x-show="activeTab === 'activity'" x-transition class="p-6">
+            <div class="space-y-4">
+                {% for resume in resumes|slice:":5" %}
+                <div class="flex items-center p-4 bg-gray-50 rounded-lg">
+                    <div class="flex-shrink-0 w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                        <i class="fas fa-pencil-alt text-blue-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-900">
+                            Updated "{{ resume.title }}"
+                        </p>
+                        <p class="text-sm text-gray-500">
+                            {{ resume.updated_at|timesince }} ago
+                        </p>
                     </div>
                 </div>
-            {% endfor %}
+                {% endfor %}
+            </div>
         </div>
-    {% else %}
-        <p class="text-gray-700">You have not created any resumes yet. <a href="{% url 'create_resume' %}" class="text-blue-600 hover:underline">Start creating one now</a>!</p>
-    {% endif %}
+    </div>
 </div>
 {% endblock %}

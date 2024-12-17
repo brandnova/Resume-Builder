@@ -1,50 +1,90 @@
 {% extends "resumes/public_base.html" %}
 
 {% block content %}
-<h1 class="text-3xl mb-6 text-center">{{ resume.title }}</h1>
+<div class="max-w-7xl mx-auto p-4 md:p-8">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <!-- Left Sidebar -->
+        <div class="lg:col-span-4 space-y-8">
+            {% if personal_info %}
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                    <div class="bg-gradient-to-br from-blue-600 to-blue-800 px-6 py-8 text-center">
+                        {% if personal_info.image %}
+                        <img src="{{ personal_info.image.url }}" 
+                            alt="{{ personal_info.full_name }}"
+                            class="w-32 h-32 rounded-full mx-auto border-4 border-white shadow-lg object-cover">
+                        {% endif %}
+                        <h1 class="text-2xl font-bold text-white mt-4">{{ personal_info.full_name }}</h1>
+                    </div>
+                    
+                    <div class="p-6 space-y-4">
+                        <div class="space-y-2">
+                            {% if personal_info.email %}
+                            <div class="flex items-center text-gray-600">
+                                <i class="fas fa-envelope w-6"></i>
+                                <span class="ml-2">{{ personal_info.email }}</span>
+                            </div>
+                            {% endif %}
+                            
+                            {% if personal_info.phone %}
+                            <div class="flex items-center text-gray-600">
+                                <i class="fas fa-phone w-6"></i>
+                                <span class="ml-2">{{ personal_info.phone }}</span>
+                            </div>
+                            {% endif %}
+                            
+                            {% if personal_info.location %}
+                            <div class="flex items-center text-gray-600">
+                                <i class="fas fa-location-dot w-6"></i>
+                                <span class="ml-2">{{ personal_info.location }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
 
-<div class="max-w-4xl mx-auto mt-10 bg-white p-8 shadow-md">
+                        <div class="flex justify-center space-x-4 pt-4">
+                            {% if personal_info.linkedin_url %}
+                            <a href="{{ personal_info.linkedin_url }}" target="_blank" 
+                            class="text-blue-600 hover:text-blue-800">
+                                <i class="fab fa-linkedin text-2xl"></i>
+                            </a>
+                            {% endif %}
+                            {% if personal_info.github_url %}
+                            <a href="{{ personal_info.github_url }}" target="_blank"
+                            class="text-gray-700 hover:text-gray-900">
+                                <i class="fab fa-github text-2xl"></i>
+                            </a>
+                            {% endif %}
+                            {% if personal_info.website_url %}
+                            <a href="{{ personal_info.website_url }}" target="_blank"
+                            class="text-blue-600 hover:text-blue-800">
+                                <i class="fas fa-globe text-2xl"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
 
-    {% if personal_info %}
-    <section class="mb-8 text-center">
-        {% if personal_info.image %}
-            <img src="{{ personal_info.image.url }}" alt="{{ personal_info.full_name }}" class="mx-auto mb-4 rounded-full w-32 h-32 object-cover">
-        {% endif %}
-        <h2 class="text-2xl font-bold">{{ personal_info.full_name }}</h2>
-        <div class="flex justify-center space-x-4 mt-2 text-gray-600">
-            <p>{{ personal_info.email }}</p>
-            <p>{{ personal_info.phone }}</p>
-            <p>{{ personal_info.location }}</p>
-        </div>
-        
-        <div class="flex justify-center space-x-4 mt-2">
-            {% if personal_info.linkedin_url %}
-                <a href="{{ personal_info.linkedin_url }}" target="_blank" class="text-blue-600 hover:underline">LinkedIn</a>
+                {% if personal_info.summary %}
+                    <div class="bg-white rounded-2xl shadow-lg p-6">
+                        <h2 class="text-xl font-bold text-gray-800 mb-4">About Me</h2>
+                        <p class="text-gray-600 leading-relaxed">{{ personal_info.summary }}</p>
+                    </div>
+                {% endif %}
             {% endif %}
-            {% if personal_info.github_url %}
-                <a href="{{ personal_info.github_url }}" target="_blank" class="text-blue-600 hover:underline">GitHub</a>
-            {% endif %}
-            {% if personal_info.website_url %}
-                <a href="{{ personal_info.website_url }}" target="_blank" class="text-blue-600 hover:underline">Website</a>
-            {% endif %}
+
+            <!-- Side Sections -->
+            {% include "resumes/public_resume_sections/_skills.html" %}
+            {% include "resumes/public_resume_sections/_languages.html" %}
+            {% include "resumes/public_resume_sections/_certifications.html" %}
         </div>
 
-        {% if personal_info.summary %}
-        <div class="mt-4 text-gray-700 max-w-xl mx-auto">
-            <h3 class="text-lg font-semibold mb-2">Professional Summary</h3>
-            <p>{{ personal_info.summary }}</p>
+        <!-- Main Content -->
+        <div class="lg:col-span-8 space-y-8">
+            {% include "resumes/public_resume_sections/_work_experience.html" %}
+            {% include "resumes/public_resume_sections/_education.html" %}
+            {% include "resumes/public_resume_sections/_projects.html" %}
+            {% include "resumes/public_resume_sections/_references.html" %}
+            {% include "resumes/public_resume_sections/_custom_sections.html" %}
         </div>
-        {% endif %}
-    </section>
-    {% endif %}
-
-    {% include "resumes/public_resume_sections/_work_experience.html" %}
-    {% include "resumes/public_resume_sections/_education.html" %}
-    {% include "resumes/public_resume_sections/_skills.html" %}
-    {% include "resumes/public_resume_sections/_projects.html" %}
-    {% include "resumes/public_resume_sections/_certifications.html" %}
-    {% include "resumes/public_resume_sections/_languages.html" %}
-    {% include "resumes/public_resume_sections/_references.html" %}
-    {% include "resumes/public_resume_sections/_custom_sections.html" %}
+    </div>
 </div>
 {% endblock %}

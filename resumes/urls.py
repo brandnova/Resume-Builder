@@ -44,6 +44,7 @@ urlpatterns = [
     # Resume Preview and Management
     path('<slug:resume_slug>/preview/', views.resume_preview, name='resume_preview'),
     path('list/', views.resume_list, name='resume_list'),
+    path('<slug:resume_slug>/edit/', views.edit_resume, name='edit_resume'),
     path('<slug:resume_slug>/delete/', views.delete_resume, name='delete_resume'),
     
     # Public Resume View

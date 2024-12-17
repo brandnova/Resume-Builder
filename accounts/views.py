@@ -1,6 +1,9 @@
+from venv import logger
+from django.forms import ValidationError
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, authenticate, logout
 
+from accounts.models import UserProfile
 from resumes.models import Resume
 from .forms import CustomUserCreationForm, UserProfileUpdateForm, CustomAuthenticationForm, CustomPasswordResetForm, CustomPasswordChangeForm
 from django.contrib import messages
@@ -48,6 +51,14 @@ def user_login(request):
             messages.error(request, "Invalid username or password.")
     else:
         form = CustomAuthenticationForm()
+        # Add classes to form fields
+        form.fields['username'].widget.attrs.update({
+            'class': 'pl-10 w-full py-3 border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500'
+        })
+        form.fields['password'].widget.attrs.update({
+            'class': 'pl-10 w-full py-3 border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500'
+        })
+    
     return render(request, 'accounts/login.html', {'form': form})
 
 
@@ -95,8 +106,18 @@ def change_password(request):
 @login_required
 def dashboard(request):
     resumes = Resume.objects.filter(user=request.user).order_by('-created_at')
+    completed_resumes_count = resumes.filter(is_complete=True).count()
+
+    user = request.user  
+    profile = UserProfile.objects.get(user=user) 
+    # Get the domain name of the current site
+    domain = request.get_host() 
+
     return render(request, 'accounts/dashboard.html', {
         'resumes': resumes,
+        'completed_resumes_count': completed_resumes_count,
+        'domain': domain, 
+        'profile': profile, 
     })
 
 
@@ -111,15 +132,32 @@ def view_resumes(request):
     return render(request, 'accounts/view_resumes.html', {'resumes': resumes})
 
 
-
 @login_required
 def update_profile(request):
+    """
+    View to handle user profile updates
+    """
     if request.method == 'POST':
-        form = UserProfileUpdateForm(request.POST, instance=request.user)
+        form = UserProfileUpdateForm(
+            request.POST, 
+            request.FILES,  # Important for handling file uploads
+            instance=request.user
+        )
         if form.is_valid():
-            form.save()
-            messages.success(request, "Your profile has been updated successfully.")
-            return redirect('dashboard')
+            try:
+                user = form.save()
+                messages.success(request, "Your profile has been updated successfully.")
+                return redirect('dashboard')
+            except ValidationError as e:
+                messages.error(request, f"Validation Error: {str(e)}")
+            except Exception as e:
+                messages.error(request, f"An unexpected error occurred: {str(e)}")
+                # Consider logging the full error
+                logger.error(f"Profile update error: {e}", exc_info=True)
     else:
         form = UserProfileUpdateForm(instance=request.user)
-    return render(request, 'accounts/update_profile.html', {'form': form})
+    
+    return render(request, 'accounts/update_profile.html', {
+        'form': form,
+        'user_profile': request.user.userprofile
+    })
