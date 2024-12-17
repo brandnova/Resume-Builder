@@ -1,76 +1,72 @@
-{% extends 'resumes/base.html' %}
+{% extends "accounts/dashboard_base.html" %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto bg-white p-8 rounded-lg shadow-md mt-10">
-    <h1 class="text-3xl font-bold text-gray-800 mb-8">Custom Sections</h1>
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="bg-white rounded-2xl shadow-xl">
+        <div class="bg-gradient-to-r from-purple-600 to-indigo-700 px-6 py-8">
+            <h2 class="text-2xl font-bold text-white">Custom Sections</h2>
+            <p class="mt-2 text-purple-100">Add additional sections to make your resume stand out</p>
+        </div>
 
-    <!-- Existing Custom Sections -->
-    {% if custom_sections %}
-        <h2 class="text-xl font-semibold text-gray-700 mb-6">Existing Custom Sections</h2>
-        <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
-                <thead>
-                    <tr class="bg-gray-200">
-                        <th class="py-3 px-4 text-sm font-medium text-gray-600">Section Name</th>
-                        <th class="py-3 px-4 text-sm font-medium text-gray-600">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y">
+        {% if custom_sections %}
+            <div class="p-6 border-b border-gray-200">
+                <div class="space-y-6">
                     {% for section in custom_sections %}
-                        <tr>
-                            <td class="py-3 px-4 text-gray-800">{{ section.section_name }}</td>
-                            <td class="py-3 px-4">
+                        <div class="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h4 class="text-lg font-semibold text-gray-900">{{ section.title }}</h4>
+                                    <div class="mt-2 prose prose-sm text-gray-600">
+                                        {{ section.content|linebreaks }}
+                                    </div>
+                                </div>
                                 <form method="post" action="{% url 'delete_custom_section' resume.slug section.id %}">
                                     {% csrf_token %}
-                                    <button type="submit" 
-                                            class="text-red-600 hover:text-red-800 text-sm font-medium">
-                                        Delete
+                                    <button type="submit" class="text-red-600 hover:text-red-800 transition-colors">
+                                        <i class="fas fa-trash-alt"></i>
                                     </button>
                                 </form>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    {% endif %}
-
-    <!-- Add Custom Section Form -->
-    <form method="post" class="space-y-6 mt-8">
-        {% csrf_token %}
-        <h2 class="text-xl font-semibold text-gray-700">Add a New Section</h2>
-        <div class="grid grid-cols-1 gap-6">
-            {% for field in form %}
-                <div>
-                    <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-600 mb-1">
-                        {{ field.label }}
-                    </label>
-                    {{ field }}
-                    {% if field.errors %}
-                        <div class="text-red-500 text-xs mt-1">
-                            {% for error in field.errors %}
-                                {{ error }}
-                            {% endfor %}
+                            </div>
                         </div>
-                    {% endif %}
+                    {% endfor %}
                 </div>
-            {% endfor %}
-        </div>
-        <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-semibold">
-            Add Section
-        </button>
-    </form>
+            </div>
+        {% endif %}
 
-    <!-- Navigation Buttons -->
-    <div class="mt-10 flex justify-between items-center">
-        <a href="{% url 'resume_references' resume.slug %}" 
-           class="inline-flex items-center bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 px-6 rounded-lg font-medium">
-            Previous
-        </a>
-        <a href="{% url 'resume_preview' resume.slug %}" 
-           class="inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-lg font-medium">
-            Preview Resume
-        </a>
+        <div class="p-6">
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
+                {% for field in form %}
+                    <div class="space-y-1">
+                        <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ field.label }}
+                        </label>
+                        {{ field }}
+                        {% if field.errors %}
+                            <div class="text-sm text-red-600">
+                                {% for error in field.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+                <div class="flex justify-end">
+                    <button type="submit" class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                        <i class="fas fa-plus mr-2"></i>Add Section
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-between">
+            <a href="{% url 'resume_references' resume.slug %}" class="inline-flex items-center px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">
+                <i class="fas fa-arrow-left mr-2"></i>Previous
+            </a>
+            <a href="{% url 'resume_preview' resume.slug %}" class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                Preview Resume<i class="fas fa-eye ml-2"></i>
+            </a>
+        </div>
     </div>
 </div>
 {% endblock %}

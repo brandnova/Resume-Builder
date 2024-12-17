@@ -1,12 +1,28 @@
-from django.http import JsonResponse
+from django.template.loader import render_to_string
+from weasyprint import HTML, CSS
+from django.conf import settings
+import os
+import hashlib
+import pdfkit
+import hmac
+import json
+import requests
+from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.views.decorators.http import require_http_methods
 from django.contrib import messages
 from django.template.loader import render_to_string
+from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
+from django.urls import reverse
+from django.template import Template, Context
+
+from core.models import SiteSettings
 
 from .models import (
-    Resume, PersonalInfo, WorkExperience, Education, 
+    PDFDownload, Resume, PersonalInfo, ResumeTemplate, UserTemplate, WorkExperience, Education, 
     Skill, Project, Certification, Language, Reference, CustomSection
 )
 from .forms import (
@@ -384,14 +400,10 @@ def delete_custom_section(request, resume_slug, custom_section_id):
         'resume': resume
     })
 
-# Update existing resume_preview and public_resume_view to include new sections
-@login_required
 def resume_preview(request, resume_slug):
-    """Preview the entire resume with all sections"""
     resume = get_object_or_404(Resume, slug=resume_slug, user=request.user)
+    domain = request.get_host()
 
-    domain = request.get_host() 
-    
     # Fetch all related data
     personal_info = resume.personalinfo if hasattr(resume, 'personalinfo') else None
     work_experiences = resume.workexperience_set.all()
@@ -402,12 +414,13 @@ def resume_preview(request, resume_slug):
     languages = resume.language_set.all()
     references = resume.references.all()
     custom_sections = resume.custom_sections.all()
-    
+
     # Mark resume as complete when preview is accessed
     resume.is_complete = True
     resume.save()
 
-    return render(request, 'resumes/preview.html', {
+    # Create context dictionary
+    context = {
         'resume': resume,
         'personal_info': personal_info,
         'work_experiences': work_experiences,
@@ -420,19 +433,17 @@ def resume_preview(request, resume_slug):
         'custom_sections': custom_sections,
         'section': 'preview',
         'domain': domain,
-    })
-
-@login_required
-def resume_list(request):
-    """List all resumes created by the user"""
-    resumes = Resume.objects.filter(user=request.user).order_by('-created_at')
-    return render(request, 'resumes/resume_list.html', {
-        'resumes': resumes,
-        'section': 'resume_list'
-    })
+    }
+    
+    if resume.template:
+        # Parse and render the dynamic template
+        template_content = Template(resume.template.html_content)
+        rendered_content = template_content.render(Context(context))
+        context['rendered_template'] = rendered_content
+        
+    return render(request, 'resumes/preview.html', context)
 
 def public_resume_view(request, slug):
-    """Publicly accessible resume view with all sections"""
     resume = get_object_or_404(Resume, slug=slug, is_complete=True)
     
     # Fetch all related data
@@ -446,7 +457,7 @@ def public_resume_view(request, slug):
     references = resume.references.all()
     custom_sections = resume.custom_sections.all()
 
-    return render(request, 'resumes/public_resume.html', {
+    context = {
         'resume': resume,
         'personal_info': personal_info,
         'work_experiences': work_experiences,
@@ -457,203 +468,100 @@ def public_resume_view(request, slug):
         'languages': languages,
         'references': references,
         'custom_sections': custom_sections
-    })
+    }
 
+    if resume.template:
+        # Parse and render the dynamic template
+        template_content = Template(resume.template.html_content)
+        rendered_content = template_content.render(Context(context))
+        context['rendered_template'] = rendered_content
+
+    return render(request, 'resumes/public_resume.html', context)
+
+
+@login_required
+def resume_list(request):
+    """List all resumes created by the user"""
+    resumes = Resume.objects.filter(user=request.user).order_by('-created_at')
+    return render(request, 'resumes/resume_list.html', {
+        'resumes': resumes,
+        'section': 'resume_list'
+    })
 
 @login_required
 def edit_resume(request, resume_slug):
     resume = get_object_or_404(Resume, slug=resume_slug, user=request.user)
     
-    def process_form(form_class, form_data, resume_attr=None, success_message=None):
-        """
-        Helper function to process form submissions with error handling
-        """
-        form = form_class(form_data)
-        if form.is_valid():
-            instance = form.save(commit=False)
-            if resume_attr:
-                setattr(instance, resume_attr, resume)
-            instance.save()
-            
-            # Prepare success response
-            response_data = {
-                'success': True,
-                'message': success_message or 'Section updated successfully.'
-            }
-            
-            return response_data
-        else:
-            # Prepare error response with form errors
-            response_data = {
-                'success': False,
-                'errors': form.errors
-            }
-            return response_data
-
-    # Handle AJAX requests
-    if request.method == 'POST' and request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        try:
-            # Handle different section submissions
-            if 'update_title' in request.POST:
-                form = ResumeForm(request.POST, instance=resume)
-                if form.is_valid():
-                    form.save()
-                    return JsonResponse({'success': True, 'message': 'Resume title updated successfully.'})
-                else:
-                    return JsonResponse({'success': False, 'errors': form.errors})
-
-            elif 'update_personal_info' in request.POST:
-                personal_info = resume.personalinfo if hasattr(resume, 'personalinfo') else None
-                form = PersonalInfoForm(request.POST, instance=personal_info)
-                if form.is_valid():
-                    instance = form.save(commit=False)
-                    instance.resume = resume
-                    instance.save()
-                    return JsonResponse({'success': True, 'message': 'Personal information updated successfully.'})
-                else:
-                    return JsonResponse({'success': False, 'errors': form.errors})
-
-            elif 'add_work_experience' in request.POST:
-                result = process_form(
-                    WorkExperienceForm, 
-                    request.POST, 
-                    'resume', 
-                    'Work experience added successfully.'
-                )
-                return JsonResponse(result)
-
-            elif 'add_education' in request.POST:
-                result = process_form(
-                    EducationForm, 
-                    request.POST, 
-                    'resume', 
-                    'Education added successfully.'
-                )
-                return JsonResponse(result)
-
-            elif 'add_skill' in request.POST:
-                result = process_form(
-                    SkillForm, 
-                    request.POST, 
-                    'resume', 
-                    'Skill added successfully.'
-                )
-                return JsonResponse(result)
-
-            elif 'add_project' in request.POST:
-                result = process_form(
-                    ProjectForm, 
-                    request.POST, 
-                    'resume', 
-                    'Project added successfully.'
-                )
-                return JsonResponse(result)
-
-            elif 'add_certification' in request.POST:
-                result = process_form(
-                    CertificationForm, 
-                    request.POST, 
-                    'resume', 
-                    'Certification added successfully.'
-                )
-                return JsonResponse(result)
-
-            elif 'add_language' in request.POST:
-                result = process_form(
-                    LanguageForm, 
-                    request.POST, 
-                    'resume', 
-                    'Language added successfully.'
-                )
-                return JsonResponse(result)
-
-            elif 'add_reference' in request.POST:
-                result = process_form(
-                    ReferenceForm, 
-                    request.POST, 
-                    'resume', 
-                    'Reference added successfully.'
-                )
-                return JsonResponse(result)
-
-            elif 'add_custom_section' in request.POST:
-                result = process_form(
-                    CustomSectionForm, 
-                    request.POST, 
-                    'resume', 
-                    'Custom section added successfully.'
-                )
-                return JsonResponse(result)
-
-            # Handle deletion requests
-            elif 'delete_work_experience' in request.POST:
-                exp_id = request.POST.get('experience_id')
-                try:
-                    exp = WorkExperience.objects.get(id=exp_id, resume=resume)
-                    exp.delete()
-                    return JsonResponse({'success': True, 'message': 'Work experience deleted successfully.'})
-                except WorkExperience.DoesNotExist:
-                    return JsonResponse({'success': False, 'message': 'Work experience not found.'})
-
-            # Similar deletion handlers for other sections...
-
-            return JsonResponse({'success': False, 'message': 'Invalid request.'})
-
-        except Exception as e:
-            # Catch-all error handler
-            return JsonResponse({
-                'success': False, 
-                'message': f'An unexpected error occurred: {str(e)}'
-            })
-
-    # Regular page load
-    # Fetch all related data (same as before)
-    personal_info = resume.personalinfo if hasattr(resume, 'personalinfo') else None
-    work_experiences = resume.workexperience_set.all()
-    education_entries = resume.education_set.all()
-    skills = resume.skill_set.all()
-    projects = resume.project_set.all()
-    certifications = resume.certification_set.all()
-    languages = resume.language_set.all()
-    references = resume.references.all()
-    custom_sections = resume.custom_sections.all()
-
-    # Create forms for each section
-    form = ResumeForm(instance=resume)
-    personal_info_form = PersonalInfoForm(instance=personal_info) if personal_info else PersonalInfoForm()
-    work_experience_form = WorkExperienceForm()
-    education_form = EducationForm()
-    skill_form = SkillForm()
-    project_form = ProjectForm()
-    certification_form = CertificationForm()
-    language_form = LanguageForm()
-    reference_form = ReferenceForm()
-    custom_section_form = CustomSectionForm()
-
-    context = {
-        'resume': resume,
-        'form': form,
-        'personal_info_form': personal_info_form,
-        'work_experience_form': work_experience_form,
-        'education_form': education_form,
-        'skill_form': skill_form,
-        'project_form': project_form,
-        'certification_form': certification_form,
-        'language_form': language_form,
-        'reference_form': reference_form,
-        'custom_section_form': custom_section_form,
-        'personal_info': personal_info,
-        'work_experiences': work_experiences,
-        'education_entries': education_entries,
-        'skills': skills,
-        'projects': projects,
-        'certifications': certifications,
-        'languages': languages,
-        'references': references,
-        'custom_sections': custom_sections,
+    # Map section names to their corresponding forms and models
+    SECTION_MAPPING = {
+        'personal_info': (PersonalInfoForm, 'personalinfo'),  # One-to-one relationship
+        'work_experience': (WorkExperienceForm, 'workexperience_set'),
+        'education': (EducationForm, 'education_set'),
+        'skills': (SkillForm, 'skill_set'),
+        'projects': (ProjectForm, 'project_set'),
+        'certifications': (CertificationForm, 'certification_set'),
+        'languages': (LanguageForm, 'language_set'),
+        'references': (ReferenceForm, 'references'),
+        'custom_sections': (CustomSectionForm, 'custom_sections')
     }
 
+    if request.method == 'POST' and request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        action = request.POST.get('action')
+        section = request.POST.get('section')
+        
+        try:
+            if action == 'update':
+                if section == 'title':
+                    form = ResumeForm(request.POST, instance=resume)
+                    if form.is_valid():
+                        form.save()
+                        return JsonResponse({'success': True})
+                
+                form_class, model_attr = SECTION_MAPPING.get(section)
+                instance_id = request.POST.get('id')
+                instance = getattr(resume, model_attr).filter(id=instance_id).first() if instance_id else None
+                form = form_class(request.POST, instance=instance)
+                
+                if form.is_valid():
+                    obj = form.save(commit=False)
+                    obj.resume = resume
+                    obj.save()
+                    return JsonResponse({'success': True})
+                return JsonResponse({'success': False, 'errors': form.errors})
+            
+            elif action == 'delete':
+                instance_id = request.POST.get('id')
+                _, model_attr = SECTION_MAPPING.get(section)
+                getattr(resume, model_attr).filter(id=instance_id).delete()
+                return JsonResponse({'success': True})
+                
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+    # Prepare context for GET request
+    context = {
+        'resume': resume,
+        'sections': {}
+    }
+    
+    for section, (form_class, model_attr) in SECTION_MAPPING.items():
+        if section == 'personal_info':
+            # Handle one-to-one relationship
+            instance = getattr(resume, model_attr, None)
+            context['sections'][section] = {
+                'form': form_class(instance=instance) if instance else form_class(),
+                'items': [instance] if instance else []
+            }
+        else:
+            # Handle one-to-many relationships
+            context['sections'][section] = {
+                'form': form_class(),
+                'items': getattr(resume, model_attr).all()
+            }
+
     return render(request, 'resumes/edit_resume.html', context)
+
+
 
 @login_required
 def delete_resume(request, resume_slug):
@@ -668,3 +576,408 @@ def delete_resume(request, resume_slug):
     return render(request, 'resumes/confirm_delete.html', {
         'object': resume
     })
+
+
+
+@login_required
+def initialize_template_payment(request, template_id):
+    template = get_object_or_404(ResumeTemplate, id=template_id)
+    
+    # Initialize payment with Paystack
+    paystack_secret = settings.PAYSTACK_SECRET_KEY
+    url = "https://api.paystack.co/transaction/initialize"
+    
+    headers = {
+        "Authorization": f"Bearer {paystack_secret}",
+        "Content-Type": "application/json"
+    }
+    
+    data = {
+        "email": request.user.email,
+        "amount": int(template.price * 100),  # Convert to kobo
+        "currency": "NGN",
+        "callback_url": request.build_absolute_uri(reverse('payment_webhook')),
+        "metadata": {
+            "template_id": template_id,
+            "user_id": request.user.id
+        }
+    }
+    
+    response = requests.post(url, headers=headers, json=data)
+    
+    if response.status_code == 200:
+        return JsonResponse({
+            "status": "success",
+            "data": response.json()["data"]
+        })
+    
+    return JsonResponse({
+        "status": "error",
+        "message": "Failed to initialize payment"
+    }, status=400)
+
+@csrf_exempt
+def payment_webhook(request):
+    if request.method == 'POST':
+        # Handle webhook POST from Paystack
+        payload = json.loads(request.body)
+        reference = payload.get('reference')
+    else:
+        # Handle GET redirect from payment page
+        reference = request.GET.get('reference')
+    
+    if not reference:
+        return JsonResponse({'status': 'error', 'message': 'No reference provided'})
+    
+    # Verify the payment with Paystack
+    paystack_secret = settings.PAYSTACK_SECRET_KEY
+    url = f"https://api.paystack.co/transaction/verify/{reference}"
+    
+    headers = {
+        "Authorization": f"Bearer {paystack_secret}",
+        "Content-Type": "application/json"
+    }
+    
+    response = requests.get(url, headers=headers)
+    
+    if response.status_code == 200:
+        response_data = response.json()
+        if response_data['data']['status'] == 'success':
+            # Get metadata from the transaction
+            metadata = response_data['data']['metadata']
+            template_id = metadata.get('template_id')
+            user_id = metadata.get('user_id')
+            
+            # Create UserTemplate record
+            template = ResumeTemplate.objects.get(id=template_id)
+            user = User.objects.get(id=user_id)
+            UserTemplate.objects.create(
+                user=user,
+                template=template,
+                payment_reference=reference
+            )
+            
+            # Redirect to template selection with success message
+            return redirect(f"{reverse('template_selection')}?payment_status=success")
+    
+    # Redirect with error message if verification fails
+    return redirect(f"{reverse('template_selection')}?payment_status=failed")
+
+
+
+def verify_payment(request, reference):
+    headers = {
+        'Authorization': f'Bearer {settings.PAYSTACK_SECRET_KEY}',
+    }
+    
+    response = requests.get(
+        f'https://api.paystack.co/transaction/verify/{reference}',
+        headers=headers
+    )
+    
+    if response.json()['data']['status'] == 'success':
+        metadata = response.json()['data']['metadata']
+        UserTemplate.objects.create(
+            user_id=metadata['user_id'],
+            template_id=metadata['template_id'],
+            payment_reference=reference
+        )
+        return JsonResponse({'status': 'success'})
+    
+    return JsonResponse({'status': 'failed'})
+
+
+@login_required
+def template_selection(request):
+    templates = ResumeTemplate.objects.filter(is_active=True)
+    user_templates = ResumeTemplate.objects.filter(
+        id__in=UserTemplate.objects.filter(user=request.user).values_list('template_id', flat=True)
+    )
+    
+    context = {
+        'templates': templates,
+        'user_templates': user_templates
+    }
+    return render(request, 'resumes/template_selection.html', context)
+
+@login_required
+def select_template(request, template_id):
+    resume_slug = request.GET.get('resume_slug')
+    resume = get_object_or_404(Resume, slug=resume_slug, user=request.user)
+    
+    if template_id == 'default':
+        resume.template = None
+        resume.save()
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Default template applied successfully'
+        })
+    
+    template = get_object_or_404(ResumeTemplate, id=template_id)
+    
+    # Check if user has access to this template
+    has_access = template.is_free or UserTemplate.objects.filter(
+        user=request.user, 
+        template=template
+    ).exists()
+    
+    if has_access:
+        resume.template = template
+        resume.save()
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Template applied successfully',
+            'template_name': template.name
+        })
+    
+    return JsonResponse({
+        'status': 'error',
+        'message': 'Template access denied'
+    }, status=403)
+
+
+@login_required
+def preview_template(request, template_id):
+    template = get_object_or_404(ResumeTemplate, id=template_id)
+    resume_slug = request.GET.get('resume_slug')
+    resume = get_object_or_404(Resume, slug=resume_slug, user=request.user)
+    
+    # Fetch all resume data
+    personal_info = resume.personalinfo if hasattr(resume, 'personalinfo') else None
+    work_experiences = resume.workexperience_set.all()
+    education_entries = resume.education_set.all()
+    skills = resume.skill_set.all()
+    projects = resume.project_set.all()
+    certifications = resume.certification_set.all()
+    languages = resume.language_set.all()
+    references = resume.references.all()
+    custom_sections = resume.custom_sections.all()
+    
+    context = {
+        'resume': resume,
+        'personal_info': personal_info,
+        'work_experiences': work_experiences,
+        'education_entries': education_entries,
+        'skills': skills,
+        'projects': projects,
+        'certifications': certifications,
+        'languages': languages,
+        'references': references,
+        'custom_sections': custom_sections,
+        'preview_mode': True,
+        'template': template
+    }
+    
+    # Render the template content
+    template_content = Template(template.html_content)
+    rendered_content = template_content.render(Context(context))
+    context['rendered_template'] = rendered_content
+    
+    return render(request, 'resumes/preview_template.html', context)
+
+
+@login_required
+def download_resume_pdf(request, resume_slug):
+    resume = get_object_or_404(Resume, slug=resume_slug, user=request.user)
+    
+    # Check if user has free download from template purchase
+    has_free_download = (
+        resume.template and 
+        UserTemplate.objects.filter(
+            user=request.user, 
+            template=resume.template
+        ).exists() and
+        not PDFDownload.objects.filter(
+            user=request.user,
+            resume=resume,
+            template=resume.template,
+            is_free=True
+        ).exists()
+    )
+    
+    if has_free_download:
+        return generate_pdf(request, resume, is_free=True)
+    
+    # Check if payment is required
+    if request.GET.get('payment_verified'):
+        return generate_pdf(request, resume)
+    
+    # Initialize payment for PDF download
+    return initialize_pdf_payment(request, resume)
+
+
+def get_resume_context(resume):
+    context = {
+        'resume': resume,
+        'personal_info': resume.personalinfo if hasattr(resume, 'personalinfo') else None,
+        'work_experiences': resume.workexperience_set.all(),
+        'education_entries': resume.education_set.all(),
+        'skills': resume.skill_set.all(),
+        'projects': resume.project_set.all(),
+        'certifications': resume.certification_set.all(),
+        'languages': resume.language_set.all(),
+        'references': resume.references.all(),
+        'custom_sections': resume.custom_sections.all(),
+    }
+    
+    if resume.template:
+        template_content = Template(resume.template.html_content)
+        rendered_content = template_content.render(Context(context))
+        context['rendered_template'] = rendered_content
+    
+    return context
+
+
+def generate_pdf(resume, request):
+    # Get the template's CSS file path
+    template_css = None
+    if resume.template and resume.template.css_file:
+        template_css = resume.template.css_file.path
+
+    # Base CSS for consistent styling
+    base_css = '''
+        @page {
+            size: letter;
+            margin: 0;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        .resume-container {
+            padding: 40px;
+        }
+    '''
+
+    # Create context with all resume data
+    context = {
+        'resume': resume,
+        'personal_info': resume.personalinfo if hasattr(resume, 'personalinfo') else None,
+        'work_experiences': resume.workexperience_set.all(),
+        'education_entries': resume.education_set.all(),
+        'skills': resume.skill_set.all(),
+        'projects': resume.project_set.all(),
+        'certifications': resume.certification_set.all(),
+        'languages': resume.language_set.all(),
+        'references': resume.references.all(),
+        'custom_sections': resume.custom_sections.all(),
+        'pdf_mode': True,  # Flag to handle PDF-specific styling
+        'request': request,  # Add request to context for URL handling
+        'domain': request.get_host(),
+    }
+
+    # Render the HTML content using the same template as the preview
+    if resume.template:
+        template_content = Template(resume.template.html_content)
+        html_string = template_content.render(Context(context))
+    else:
+        html_string = render_to_string('resumes/pdf_template.html', context)
+
+    # Collect all stylesheets
+    stylesheets = [CSS(string=base_css)]
+    
+    # Add template-specific CSS if it exists
+    if template_css and os.path.exists(template_css):
+        stylesheets.append(CSS(filename=template_css))
+    
+    # Add any additional static CSS files
+    static_css_path = os.path.join(settings.STATIC_ROOT, 'css/resume-pdf.css')
+    if os.path.exists(static_css_path):
+        stylesheets.append(CSS(filename=static_css_path))
+
+    # Generate PDF
+    pdf = HTML(string=html_string, base_url=request.build_absolute_uri('/')).write_pdf(
+        stylesheets=stylesheets,
+        presentational_hints=True
+    )
+
+    return pdf
+
+
+
+@login_required
+def initialize_pdf_payment(request, resume_slug):
+    resume = get_object_or_404(Resume, slug=resume_slug, user=request.user)
+    site_settings = SiteSettings.objects.first()
+    
+    # Initialize payment with Paystack
+    paystack_secret = settings.PAYSTACK_SECRET_KEY
+    url = "https://api.paystack.co/transaction/initialize"
+    
+    headers = {
+        "Authorization": f"Bearer {paystack_secret}",
+        "Content-Type": "application/json"
+    }
+    
+    data = {
+        "email": request.user.email,
+        "amount": int(site_settings.pdf_download_price * 100),  # Convert to kobo
+        "currency": "NGN",
+        "callback_url": request.build_absolute_uri(
+            reverse('pdf_payment_verify', kwargs={'resume_slug': resume_slug})
+        ),
+        "metadata": {
+            "resume_slug": resume_slug,
+            "user_id": request.user.id,
+            "type": "pdf_download"
+        }
+    }
+    
+    response = requests.post(url, headers=headers, json=data)
+    
+    if response.status_code == 200:
+        return JsonResponse({
+            "status": "success",
+            "data": response.json()["data"]
+        })
+    
+    return JsonResponse({
+        "status": "error",
+        "message": "Failed to initialize payment"
+    }, status=400)
+
+@csrf_exempt
+def verify_pdf_payment(request, resume_slug):
+    if request.method == 'POST':
+        payload = json.loads(request.body)
+        reference = payload.get('reference')
+    else:
+        reference = request.GET.get('reference')
+    
+    if not reference:
+        return JsonResponse({'status': 'error', 'message': 'No reference provided'})
+    
+    # Verify the payment with Paystack
+    paystack_secret = settings.PAYSTACK_SECRET_KEY
+    url = f"https://api.paystack.co/transaction/verify/{reference}"
+    
+    headers = {
+        "Authorization": f"Bearer {paystack_secret}",
+        "Content-Type": "application/json"
+    }
+    
+    response = requests.get(url, headers=headers)
+    
+    if response.status_code == 200:
+        response_data = response.json()
+        if response_data['data']['status'] == 'success':
+            # Get metadata from the transaction
+            metadata = response_data['data']['metadata']
+            resume_slug = metadata.get('resume_slug')
+            
+            # Redirect to PDF download with verification
+            return redirect(
+                f"{reverse('download_pdf', kwargs={'resume_slug': resume_slug})}?payment_verified=true&reference={reference}"
+            )
+    
+    # Redirect with error message if verification fails
+    return redirect(f"{reverse('resume_preview', kwargs={'resume_slug': resume_slug})}?payment_status=failed")

@@ -1,534 +1,269 @@
-{% extends 'resumes/base.html' %}
-
-{% block extra_head %}
-<script src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.x.x/dist/alpine.min.js" defer></script>
-<style>
-    .section-card {
-        @apply bg-white rounded-lg shadow-sm border border-gray-100 p-6 mb-6 transition-all duration-200;
-    }
-    
-    .section-card:hover {
-        @apply shadow-md border-gray-200;
-    }
-    
-    .section-header {
-        @apply flex items-center justify-between cursor-pointer p-2 rounded-t-lg;
-    }
-    
-    .section-content {
-        @apply mt-4 space-y-4;
-    }
-    
-    .form-group {
-        @apply space-y-2;
-    }
-    
-    .input-field {
-        @apply w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500;
-    }
-    
-    .btn-primary {
-        @apply bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium;
-    }
-    
-    .btn-danger {
-        @apply text-red-600 hover:text-red-700 font-medium;
-    }
-    
-    .item-card {
-        @apply bg-gray-50 rounded-lg p-4 relative border border-gray-100;
-    }
-    
-    .notification {
-        @apply fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg transform transition-all duration-300;
-    }
-    
-    @media (max-width: 768px) {
-        .section-card {
-            @apply mx-4;
-        }
-    }
-</style>
-{% endblock %}
+{% extends "accounts/dashboard_base.html" %}
 
 {% block content %}
-<div x-data="{ 
-    activeSection: null,
-    toggleSection(section) {
-        this.activeSection = this.activeSection === section ? null : section;
-    }
-}" class="max-w-4xl mx-auto py-8 px-4">
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+        <!-- Resume Title -->
+        <div class="bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-8">
+            <div class="flex items-center justify-between">
+                <h1 class="text-2xl font-bold text-white" id="resumeTitle">{{ resume.title }}</h1>
+                <button onclick="editTitle()" class="text-white hover:text-blue-200">
+                    <i class="fas fa-edit"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Sections Navigation -->
+        <div class="bg-gray-50 px-6 py-4 border-b">
+            <nav class="flex space-x-4 overflow-x-auto">
+                {% for section_name, section_data in sections.items %}
+                    <button onclick="showSection('{{ section_name }}')"
+                            class="section-tab px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors"
+                            data-section="{{ section_name }}">
+                        {{ section_name|title }}
+                    </button>
+                {% endfor %}
+            </nav>
+        </div>
+
+        <!-- Section Content -->
+        <div class="p-6">
+            {% for section_name, section_data in sections.items %}
+                <div id="{{ section_name }}_section" class="section-content hidden">
+                    <div class="mb-6">
+                        <h2 class="text-xl font-semibold text-gray-900 mb-4">{{ section_name|title }}</h2>
+                        
+                        {% if section_name == 'personal_info' %}
+                            <!-- Personal Info Section -->
+                            <form id="{{ section_name }}_form" onsubmit="return handleSubmit(event, '{{ section_name }}')" class="space-y-4">
+                                {% csrf_token %}
+                                <input type="hidden" name="section" value="{{ section_name }}">
+                                {{ section_data.form.as_p }}
+                                <div class="flex justify-end">
+                                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                                        {% if section_data.items %}Update{% else %}Save{% endif %} Personal Info
+                                    </button>
+                                </div>
+                            </form>
+                        {% else %}
+                            <!-- Multi-Entry Sections -->
+                            {% if section_data.items %}
+                            <div id="{{ section_name }}_items" class="space-y-4 mb-6">
+                                {% for item in section_data.items %}
+                                    <div id="{{ section_name }}_item_{{ item.id }}" class="bg-gray-50 rounded-lg p-4 flex justify-between items-start">
+                                        <div>
+                                            {% if section_name == 'work_experience' %}
+                                                <h3 class="font-medium">{{ item.position }} at {{ item.company }}</h3>
+                                                <p class="text-sm text-gray-600">{{ item.start_date|date:"M Y" }} - {% if item.current %}Present{% else %}{{ item.end_date|date:"M Y" }}{% endif %}</p>
+                                                <p class="text-sm text-gray-500">{{ item.description|truncatewords:30 }}</p>
+                                            {% elif section_name == 'education' %}
+                                                <h3 class="font-medium">{{ item.degree }} in {{ item.field_of_study }}</h3>
+                                                <p class="text-sm text-gray-600">{{ item.institution }}</p>
+                                                <p class="text-sm text-gray-500">{{ item.graduation_date|date:"Y" }}</p>
+                                            {% elif section_name == 'skills' %}
+                                                <h3 class="font-medium">{{ item.name }}</h3>
+                                                <p class="text-sm text-gray-600">{{ item.level }}</p>
+                                            {% elif section_name == 'projects' %}
+                                                <h3 class="font-medium">{{ item.title }}</h3>
+                                                <p class="text-sm text-gray-600">{{ item.description|truncatewords:20 }}</p>
+                                            {% elif section_name == 'certifications' %}
+                                                <h3 class="font-medium">{{ item.name }}</h3>
+                                                <p class="text-sm text-gray-600">{{ item.organization }} - {{ item.date_obtained|date:"M Y" }}</p>
+                                            {% elif section_name == 'languages' %}
+                                                <h3 class="font-medium">{{ item.name }}</h3>
+                                                <p class="text-sm text-gray-600">{{ item.proficiency }}</p>
+                                            {% elif section_name == 'references' %}
+                                                <h3 class="font-medium">{{ item.name }}</h3>
+                                                <p class="text-sm text-gray-600">{{ item.position }} at {{ item.company }}</p>
+                                            {% endif %}
+                                        </div>
+                                        <div class="flex space-x-2">
+                                            <button onclick="editItem('{{ section_name }}', {{ item.id }})"
+                                                    class="text-blue-600 hover:text-blue-800">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button onclick="deleteItem('{{ section_name }}', {{ item.id }})"
+                                                    class="text-red-600 hover:text-red-800">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+
+                            <!-- Add/Edit Form for Multi-Entry Sections -->
+                            <form id="{{ section_name }}_form" onsubmit="return handleSubmit(event, '{{ section_name }}')" class="space-y-4">
+                                {% csrf_token %}
+                                <input type="hidden" name="section" value="{{ section_name }}">
+                                <input type="hidden" name="id" value="">
+                                {{ section_data.form.as_p }}
+                                <div class="flex justify-end">
+                                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                                        Add {{ section_name|title }}
+                                    </button>
+                                </div>
+                            </form>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Toast Notification -->
+<div id="toast" class="fixed bottom-4 right-4 hidden">
+    <div class="bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg">
+        <span id="toastMessage"></span>
+    </div>
+</div>
+
+<script>
+const CSRF_TOKEN = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+function showSection(sectionName) {
+    document.querySelectorAll('.section-content').forEach(el => el.classList.add('hidden'));
+    document.getElementById(`${sectionName}_section`).classList.remove('hidden');
     
-    <!-- Header -->
-    <div class="flex items-center justify-between mb-8">
-        <h1 class="text-3xl font-bold text-gray-900">{{ resume.title }}</h1>
-        <button class="btn-primary">
-            Preview Resume
-        </button>
-    </div>
+    document.querySelectorAll('.section-tab').forEach(tab => {
+        tab.classList.remove('bg-blue-600', 'text-white');
+        if (tab.dataset.section === sectionName) {
+            tab.classList.add('bg-blue-600', 'text-white');
+        }
+    });
+}
 
-    <!-- Progress Bar -->
-    <div class="mb-8">
-        <div class="h-2 bg-gray-200 rounded-full">
-            <div class="h-2 bg-blue-600 rounded-full" style="width: 65%"></div>
-        </div>
-        <div class="mt-2 text-sm text-gray-600">65% Complete</div>
-    </div>
-
-    <!-- Sections -->
-    <div class="space-y-6">
-        <!-- Personal Information Section -->
-        <div class="section-card" x-data="{ open: false }">
-            <div class="section-header" @click="open = !open">
-                <div class="flex items-center space-x-3">
-                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                        <i class="fas fa-user text-blue-600"></i>
-                    </div>
-                    <h2 class="text-xl font-semibold text-gray-900">Personal Information</h2>
-                </div>
-                <span class="transform transition-transform" :class="{ 'rotate-180': open }">
-                    <i class="fas fa-chevron-down"></i>
-                </span>
-            </div>
-            
-            <div x-show="open" x-transition class="section-content">
-                <form method="post" class="space-y-6" @submit.prevent="handleFormSubmit">
-                    {% csrf_token %}
-                    {{ personal_info_form.as_p }}
-                    <button type="submit" class="btn-primary">Update Information</button>
-                </form>
-            </div>
-        </div>
-
-        <!-- Work Experience Section -->
-        <div class="section-card" x-data="{ open: false }">
-            <div class="section-header" @click="open = !open">
-                <div class="flex items-center space-x-3">
-                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                        <i class="fas fa-briefcase text-blue-600"></i>
-                    </div>
-                    <h2 class="text-xl font-semibold text-gray-900">Work Experience</h2>
-                </div>
-                <span class="transform transition-transform" :class="{ 'rotate-180': open }">
-                    <i class="fas fa-chevron-down"></i>
-                </span>
-            </div>
-            
-            <div x-show="open" x-transition class="section-content">
-                {% for experience in work_experiences %}
-                    <div class="item-card">
-                        <h3 class="text-lg font-semibold">{{ experience.job_title }} at {{ experience.company }}</h3>
-                        <p class="text-gray-600">{{ experience.start_date }} - {{ experience.end_date|default:"Present" }}</p>
-                        <p>{{ experience.description }}</p>
-                        <form method="post" class="absolute top-2 right-2">
-                            {% csrf_token %}
-                            <input type="hidden" name="experience_id" value="{{ experience.id }}">
-                            <button type="submit" name="delete_work_experience" class="btn-danger">Delete</button>
-                        </form>
-                    </div>
-                {% endfor %}
-                
-                <form method="post" class="form-group">
-                    {% csrf_token %}
-                    <h3 class="text-lg font-semibold mb-4">Add New Work Experience</h3>
-                    {{ work_experience_form.as_p }}
-                    <button type="submit" name="add_work_experience" class="btn-primary">
-                        Add Work Experience
-                    </button>
-                </form>
-            </div>
-        </div>
-
-        <!-- Education Section -->
-        <div class="section-card" x-data="{ open: false }">
-            <div class="section-header" @click="open = !open">
-                <div class="flex items-center space-x-3">
-                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                        <i class="fas fa-graduation-cap text-blue-600"></i>
-                    </div>
-                    <h2 class="text-xl font-semibold text-gray-900">Education</h2>
-                </div>
-                <span class="transform transition-transform" :class="{ 'rotate-180': open }">
-                    <i class="fas fa-chevron-down"></i>
-                </span>
-            </div>
-            
-            <div x-show="open" x-transition class="section-content">
-                {% for edu in education_entries %}
-                    <div class="item-card">
-                        <h3 class="text-lg font-semibold">{{ edu.degree }} in {{ edu.major }}</h3>
-                        <p class="text-gray-600">{{ edu.institution }}, {{ edu.location }}</p>
-                        <p>{{ edu.start_date }} - {{ edu.end_date|default:"Present" }}</p>
-                        <form method="post" class="absolute top-2 right-2">
-                            {% csrf_token %}
-                            <input type="hidden" name="education_id" value="{{ edu.id }}">
-                            <button type="submit" name="delete_education" class="btn-danger">Delete</button>
-                        </form>
-                    </div>
-                {% endfor %}
-                
-                <form method="post" class="form-group">
-                    {% csrf_token %}
-                    <h3 class="text-lg font-semibold mb-4">Add New Education</h3>
-                    {{ education_form.as_p }}
-                    <button type="submit" name="add_education" class="btn-primary">
-                        Add Education
-                    </button>
-                </form>
-            </div>
-        </div>
-
-        <!-- Skills Section -->
-        <div class="section-card" x-data="{ open: false }">
-            <div class="section-header" @click="open = !open">
-                <div class="flex items-center space-x-3">
-                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                        <i class="fas fa-tools text-blue-600"></i>
-                    </div>
-                    <h2 class="text-xl font-semibold text-gray-900">Skills</h2>
-                </div>
-                <span class="transform transition-transform" :class="{ 'rotate-180': open }">
-                    <i class="fas fa-chevron-down"></i>
-                </span>
-            </div>
-            
-            <div x-show="open" x-transition class="section-content">
-                {% for skill in skills %}
-                    <div class="flex justify-between items-center bg-gray-50 p-3 rounded-lg">
-                        <span>{{ skill.name }} - {{ skill.level }}</span>
-                        <form method="post" class="inline">
-                            {% csrf_token %}
-                            <input type="hidden" name="skill_id" value="{{ skill.id }}">
-                            <button type="submit" name="delete_skill" class="btn-danger">Delete</button>
-                        </form>
-                    </div>
-                {% endfor %}
-                
-                <form method="post" class="form-group">
-                    {% csrf_token %}
-                    <h3 class="text-lg font-semibold mb-4">Add New Skill</h3>
-                    {{ skill_form.as_p }}
-                    <button type="submit" name="add_skill" class="btn-primary">
-                        Add Skill
-                    </button>
-                </form>
-            </div>
-        </div>
-
-        <!-- Projects Section -->
-        <div class="section-card" x-data="{ open: false }">
-            <div class="section-header" @click="open = !open">
-                <div class="flex items-center space-x-3">
-                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                        <i class="fas fa-project-diagram text-blue-600"></i>
-                    </div>
-                    <h2 class="text-xl font-semibold text-gray-900">Projects</h2>
-                </div>
-                <span class="transform transition-transform" :class="{ 'rotate-180': open }">
-                    <i class="fas fa-chevron-down"></i>
-                </span>
-            </div>
-            
-            <div x-show="open" x-transition class="section-content">
-                {% for project in projects %}
-                    <div class="item-card">
-                        <h3 class="text-lg font-semibold">{{ project.name }}</h3>
-                        <p>{{ project.description }}</p>
-                        <p class="text-gray-600">Technologies: {{ project.technologies }}</p>
-                        <form method="post" class="absolute top-2 right-2">
-                            {% csrf_token %}
-                            <input type="hidden" name="project_id" value="{{ project.id }}">
-                            <button type="submit" name="delete_project" class="btn-danger">Delete</button>
-                        </form>
-                    </div>
-                {% endfor %}
-                
-                <form method="post" class="form-group">
-                    {% csrf_token %}
-                    <h3 class="text-lg font-semibold mb-4">Add New Project</h3>
-                    {{ project_form.as_p }}
-                    <button type="submit" name="add_project" class="btn-primary">
-                        Add Project
-                    </button>
-                </form>
-            </div>
-        </div>
-
-        <!-- Certifications Section -->
-        <div class="section-card" x-data="{ open: false }">
-            <div class="section-header" @click="open = !open">
-                <div class="flex items-center space-x-3">
-                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                        <i class="fas fa-certificate text-blue-600"></i>
-                    </div>
-                    <h2 class="text-xl font-semibold text-gray-900">Certifications</h2>
-                </div>
-                <span class="transform transition-transform" :class="{ 'rotate-180': open }">
-                    <i class="fas fa-chevron-down"></i>
-                </span>
-            </div>
-            
-            <div x-show="open" x-transition class="section-content">
-                {% for cert in certifications %}
-                    <div class="item-card">
-                        <h3 class="text-lg font-semibold">{{ cert.name }}</h3>
-                        <p class="text-gray-600">{{ cert.organization }}</p>
-                        <p>Obtained: {{ cert.date_obtained }}</p>
-                        <form method="post" class="absolute top-2 right-2">
-                            {% csrf_token %}
-                            <input type="hidden" name="certification_id" value="{{ cert.id }}">
-                            <button type="submit" name="delete_certification" class="btn-danger">Delete</button>
-                        </form>
-                    </div>
-                {% endfor %}
-                
-                <form method="post" class="form-group">
-                    {% csrf_token %}
-                    <h3 class="text-lg font-semibold mb-4">Add New Certification</h3>
-                    {{ certification_form.as_p }}
-                    <button type="submit" name="add_certification" class="btn-primary">
-                        Add Certification
-                    </button>
-                </form>
-            </div>
-        </div>
-
-        <!-- Languages Section -->
-        <div class="section-card" x-data="{ open: false }">
-            <div class="section-header" @click="open = !open">
-                <div class="flex items-center space-x-3">
-                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                        <i class="fas fa-language text-blue-600"></i>
-                    </div>
-                    <h2 class="text-xl font-semibold text-gray-900">Languages</h2>
-                </div>
-                <span class="transform transition-transform" :class="{ 'rotate-180': open }">
-                    <i class="fas fa-chevron-down"></i>
-                </span>
-            </div>
-            
-            <div x-show="open" x-transition class="section-content">
-                {% for lang in languages %}
-                    <div class="flex justify-between items-center bg-gray-50 p-3 rounded-lg">
-                        <span>{{ lang.name }} - {{ lang.proficiency }}</span>
-                        <form method="post" class="inline">
-                            {% csrf_token %}
-                            <input type="hidden" name="language_id" value="{{ lang.id }}">
-                            <button type="submit" name="delete_language" class="btn-danger">Delete</button>
-                        </form>
-                    </div>
-                {% endfor %}
-                
-                <form method="post" class="form-group">
-                    {% csrf_token %}
-                    <h3 class="text-lg font-semibold mb-4">Add New Language</h3>
-                    {{ language_form.as_p }}
-                    <button type="submit" name="add_language" class="btn-primary">
-                        Add Language
-                    </button>
-                </form>
-            </div>
-        </div>
-
-        <!-- References Section -->
-        <div class="section-card" x-data="{ open: false }">
-            <div class="section-header" @click="open = !open">
-                <div class="flex items-center space-x-3">
-                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                        <i class="fas fa-users text-blue-600"></i>
-                    </div>
-                    <h2 class="text-xl font-semibold text-gray-900">References</h2>
-                </div>
-                <span class="transform transition-transform" :class="{ 'rotate-180': open }">
-                    <i class="fas fa-chevron-down"></i>
-                </span>
-            </div>
-            
-            <div x-show="open" x-transition class="section-content">
-                {% for ref in references %}
-                    <div class="item-card">
-                        <h3 class="text-lg font-semibold">{{ ref.reference_name }}</h3>
-                        <p class="text-gray-600">{{ ref.position }} at {{ ref.organization }}</p>
-                        <p>Email: {{ ref.email }}</p>
-                        <p>Phone: {{ ref.phone }}</p>
-                        <form method="post" class="absolute top-2 right-2">
-                            {% csrf_token %}
-                            <input type="hidden" name="reference_id" value="{{ ref.id }}">
-                            <button type="submit" name="delete_reference" class="btn-danger">Delete</button>
-                        </form>
-                    </div>
-                {% endfor %}
-                
-                <form method="post" class="form-group">
-                    {% csrf_token %}
-                    <h3 class="text-lg font-semibold mb-4">Add New Reference</h3>
-                    {{ reference_form.as_p }}
-                    <button type="submit" name="add_reference" class="btn-primary">
-                        Add Reference
-                    </button>
-                </form>
-            </div>
-        </div>
-
-        <!-- Custom Sections -->
-        <div class="section-card" x-data="{ open: false }">
-            <div class="section-header" @click="open = !open">
-                <div class="flex items-center space-x-3">
-                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                        <i class="fas fa-puzzle-piece text-blue-600"></i>
-                    </div>
-                    <h2 class="text-xl font-semibold text-gray-900">Custom Sections</h2>
-                </div>
-                <span class="transform transition-transform" :class="{ 'rotate-180': open }">
-                    <i class="fas fa-chevron-down"></i>
-                </span>
-            </div>
-            
-            <div x-show="open" x-transition class="section-content">
-                {% for section in custom_sections %}
-                    <div class="item-card">
-                        <h3 class="text-lg font-semibold">{{ section.section_name }}</h3>
-                        <div>{{ section.content|safe }}</div>
-                        <form method="post" class="absolute top-2 right-2">
-                            {% csrf_token %}
-                            <input type="hidden" name="custom_section_id" value="{{ section.id }}">
-                            <button type="submit" name="delete_custom_section" class="btn-danger">Delete</button>
-                        </form>
-                    </div>
-                {% endfor %}
-                
-                <form method="post" class="form-group">
-                    {% csrf_token %}
-                    <h3 class="text-lg font-semibold mb-4">Add New Custom Section</h3>
-                    {{ custom_section_form.as_p }}
-                    <button type="submit" name="add_custom_section" class="btn-primary">
-                        Add Custom Section
-                    </button>
-                </form>
-            </div>
-        </div>
-
-
-    </div>
-</div>
-
-<!-- Floating Action Button for mobile -->
-<div class="fixed bottom-6 right-6 md:hidden">
-    <button class="btn-primary rounded-full w-14 h-14 flex items-center justify-center shadow-lg">
-        <i class="fas fa-plus"></i>
-    </button>
-</div>
-
-<!-- Toast Notifications -->
-<div id="notifications" class="fixed top-4 right-4 z-50 space-y-4"></div>
-
-    <script>
-        // Function to save form data
-        document.addEventListener('DOMContentLoaded', function() {
-
-            // Enhanced notification system
-            function showNotification(message, type = 'success') {
-                const notifications = document.getElementById('notifications');
-                const toast = document.createElement('div');
-                
-                toast.className = `notification ${
-                    type === 'success' ? 'bg-green-500' : 'bg-red-500'
-                } text-white`;
-                
-                toast.innerHTML = `
-                    <div class="flex items-center space-x-2">
-                        <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
-                        <span>${message}</span>
-                    </div>
-                `;
-                
-                notifications.appendChild(toast);
-                
-                setTimeout(() => {
-                    toast.classList.add('opacity-0', 'translate-x-full');
-                    setTimeout(() => toast.remove(), 300);
-                }, 3000);
+async function handleSubmit(event, sectionName) {
+    event.preventDefault();
+    const form = event.target;
+    const formData = new FormData(form);
+    formData.append('action', 'update');
+    
+    try {
+        const response = await fetch('', {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': CSRF_TOKEN
+            },
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast('Successfully saved!');
+            if (sectionName !== 'personal_info') {
+                form.reset();
+                form.querySelector('[name="id"]').value = '';
             }
+            location.reload();
+        } else {
+            showToast('Error: ' + Object.values(data.errors).flat().join(', '));
+        }
+    } catch (error) {
+        showToast('An error occurred. Please try again.');
+    }
+    
+    return false;
+}
 
-            // Function to handle form submission via AJAX
-            function handleFormSubmit(event) {
-                event.preventDefault();
-                const form = event.target;
-                const formData = new FormData(form);
-        
-                // Determine the action based on the submit button name
-                const submitButton = form.querySelector('button[type="submit"]');
-                const actionName = submitButton ? submitButton.getAttribute('name') : null;
-        
-                // Add the action name to the form data
-                if (actionName) {
-                    formData.append(actionName, 'true');
-                }
-        
-                fetch(form.action, {
+function editTitle() {
+    const titleElement = document.getElementById('resumeTitle');
+    const currentTitle = titleElement.textContent;
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = currentTitle;
+    input.className = 'bg-transparent text-white border-b border-white px-2 py-1 text-2xl font-bold w-full';
+    
+    input.onblur = async () => {
+        const newTitle = input.value.trim();
+        if (newTitle && newTitle !== currentTitle) {
+            const formData = new FormData();
+            formData.append('action', 'update');
+            formData.append('section', 'title');
+            formData.append('title', newTitle);
+            
+            try {
+                const response = await fetch('', {
                     method: 'POST',
-                    body: formData,
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                    }
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        // Show success message
-                        showNotification('Section updated successfully!', 'success');
-                        
-                        // Optionally, you can refresh the section or update specific elements
-                        if (data.html) {
-                            // If the server returns updated HTML for a specific section
-                            const sectionContainer = form.closest('.mb-6');
-                            if (sectionContainer) {
-                                sectionContainer.innerHTML = data.html;
-                            }
-                        }
-                    } else {
-                        // Show error message
-                        showNotification(data.message || 'Error updating section. Please try again.', 'error');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showNotification('An error occurred while saving. Please try again.', 'error');
+                        'X-CSRFToken': CSRF_TOKEN
+                    },
+                    body: formData
                 });
+                
+                const data = await response.json();
+                if (data.success) {
+                    titleElement.textContent = newTitle;
+                    showToast('Title updated successfully');
+                }
+            } catch (error) {
+                showToast('Failed to update title');
             }
-        
-            // Notification function
-            function showNotification(message, type = 'info') {
-                // Create notification element
-                const notification = document.createElement('div');
-                notification.className = `fixed top-4 right-4 z-50 p-4 rounded shadow-lg ${
-                    type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
-                }`;
-                notification.textContent = message;
-        
-                // Add to body
-                document.body.appendChild(notification);
-        
-                // Remove after 3 seconds
-                setTimeout(() => {
-                    notification.classList.add('fade-out');
-                    setTimeout(() => {
-                        document.body.removeChild(notification);
-                    }, 500);
-                }, 3000);
-            }
-        
-            // Add event listeners to all forms
-            document.querySelectorAll('form').forEach(form => {
-                form.addEventListener('submit', handleFormSubmit);
-            });
-        });
-    </script>
-{% endblock %}
+        }
+        titleElement.textContent = newTitle || currentTitle;
+    };
+    
+    titleElement.textContent = '';
+    titleElement.appendChild(input);
+    input.focus();
+}
 
+async function deleteItem(sectionName, itemId) {
+    if (!confirm('Are you sure you want to delete this item?')) return;
+    
+    const formData = new FormData();
+    formData.append('action', 'delete');
+    formData.append('section', sectionName);
+    formData.append('id', itemId);
+    
+    try {
+        const response = await fetch('', {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': CSRF_TOKEN
+            },
+            body: formData
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            const element = document.getElementById(`${sectionName}_item_${itemId}`);
+            element.remove();
+            showToast('Item deleted successfully');
+        }
+    } catch (error) {
+        showToast('Failed to delete item');
+    }
+}
+
+function editItem(sectionName, itemId) {
+    const item = document.getElementById(`${sectionName}_item_${itemId}`);
+    const form = document.getElementById(`${sectionName}_form`);
+    
+    form.querySelector('[name="id"]').value = itemId;
+    form.scrollIntoView({ behavior: 'smooth' });
+}
+
+function showToast(message) {
+    const toast = document.getElementById('toast');
+    const toastMessage = document.getElementById('toastMessage');
+    
+    toastMessage.textContent = message;
+    toast.classList.remove('hidden');
+    
+    setTimeout(() => {
+        toast.classList.add('hidden');
+    }, 3000);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const firstSection = document.querySelector('.section-tab').dataset.section;
+    showSection(firstSection);
+});
+</script>
+{% endblock %}

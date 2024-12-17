@@ -1,17 +1,29 @@
-{% extends 'resumes/base.html' %}
+{% extends "accounts/dashboard_base.html" %}
 
 {% block content %}
-<div class="max-w-md mx-auto">
-    <h2 class="text-2xl font-bold mb-4">Delete Resume</h2>
-    <p class="mb-4">Are you sure you want to delete the resume "{{ object.title }}"?</p>
-    <form method="post">
-        {% csrf_token %}
-        <button type="submit" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
-            Confirm Delete
-        </button>
-        <a href="{% url 'resume_preview' object.slug %}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded ml-4">
-            Cancel
-        </a>
-    </form>
+<div class="min-h-[80vh] flex items-center justify-center px-4">
+    <div class="w-full max-w-md bg-white shadow-lg rounded-lg overflow-hidden">
+        <div class="p-6 border-b border-gray-200">
+            <div class="flex items-center justify-center w-12 h-12 bg-red-100 rounded-full mb-4 mx-auto">
+                <i class="fas fa-exclamation-triangle text-red-600"></i>
+            </div>
+            <h2 class="text-xl font-semibold text-gray-900 text-center mb-2">Delete Resume</h2>
+            <p class="text-gray-600 text-center">Are you sure you want to delete "<span class="font-medium">{{ object.title }}</span>"?</p>
+        </div>
+        
+        <div class="px-6 py-4 bg-gray-50">
+            <form method="post" class="flex justify-center gap-4">
+                {% csrf_token %}
+                <a href="{% url 'resume_preview' object.slug %}" 
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                    Cancel
+                </a>
+                <button type="submit" 
+                        class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                    Delete Resume
+                </button>
+            </form>
+        </div>
+    </div>
 </div>
 {% endblock %}

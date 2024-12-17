@@ -1,6 +1,12 @@
 {% extends "resumes/public_base.html" %}
 
-{% block main_content %}
+{% block content %}
+    {% if template_css %}
+    <style>
+        {{ template_css|safe }}
+    </style>
+    {% endif %}
+
     {% if template_content %}
         {{ template_content|safe }}
     {% else %}
