@@ -1,18 +1,24 @@
 {% if resume.certification_set.all %}
 <section class="mb-8">
-    <h2 class="text-xl font-semibold border-b pb-2 mb-4">Certifications</h2>
+    <h2 class="text-2xl font-bold text-gray-800 mb-4 pb-2 border-b-2 border-blue-600">
+        <i class="fas fa-certificate mr-2 text-blue-600"></i>Certifications
+    </h2>
     {% for certification in resume.certification_set.all %}
-    <div class="mb-4">
-        <div class="flex justify-between">
-            <h3 class="text-lg font-medium">{{ certification.name }}</h3>
-            <p class="text-gray-600">
+    <div class="mb-4 p-4 bg-gray-50 rounded-lg">
+        <h3 class="text-lg font-semibold text-gray-800">{{ certification.name }}</h3>
+        <p class="text-blue-600 text-sm">{{ certification.organization }}</p>
+        <div class="mt-2 text-sm text-gray-600">
+            <span class="inline-flex items-center">
+                <i class="far fa-calendar-check mr-1"></i>
                 Obtained: {{ certification.date_obtained|date:"M Y" }}
-                {% if certification.expiration_date %}
-                    | Expires: {{ certification.expiration_date|date:"M Y" }}
-                {% endif %}
-            </p>
+            </span>
+            {% if certification.expiration_date %}
+            <span class="inline-flex items-center ml-4">
+                <i class="far fa-calendar-times mr-1"></i>
+                Expires: {{ certification.expiration_date|date:"M Y" }}
+            </span>
+            {% endif %}
         </div>
-        <p class="text-gray-600">{{ certification.organization }}</p>
     </div>
     {% endfor %}
 </section>

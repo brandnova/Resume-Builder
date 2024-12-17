@@ -4,41 +4,122 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Resume Builder{% endblock %}</title>
+    
+    <!-- Enhanced Dependencies -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        .glass-nav {
+            background: rgba(37, 99, 235, 0.95);
+            backdrop-filter: blur(10px);
+        }
+        .hover-scale { transition: transform 0.2s; }
+        .hover-scale:hover { transform: scale(1.02); }
+    </style>
 </head>
-<body class="bg-gray-100 min-h-screen flex flex-col">
-    <header class="bg-blue-600 text-white">
+
+<body class="bg-gradient-to-br from-gray-50 to-blue-50 min-h-screen flex flex-col">
+    <!-- Enhanced Header -->
+    <header class="glass-nav text-white sticky top-0 z-50 shadow-lg">
         <nav class="container mx-auto px-4 py-4 flex justify-between items-center">
-            <a href="{% url 'home' %}" class="text-2xl font-bold">Resume Builder</a>
-            <div class="space-x-4">
+            <a href="{% url 'home' %}" class="text-2xl font-bold flex items-center group">
+                <i class="fas fa-paper-plane mr-3 transform group-hover:rotate-12 transition-transform"></i>
+                Resume Builder
+            </a>
+            
+            <div class="space-x-6">
                 {% if user.is_authenticated %}
-                    <a href="{% url 'dashboard' %}" class="hover:text-blue-200">Dashboard</a>
-                    <a href="{% url 'logout' %}" class="hover:text-blue-200">Logout</a>
+                    <a href="{% url 'dashboard' %}" class="inline-flex items-center hover:text-blue-200 transition-colors">
+                        <i class="fas fa-chart-line mr-2"></i>
+                        Dashboard
+                    </a>
+                    <a href="{% url 'logout' %}" class="inline-flex items-center hover:text-blue-200 transition-colors">
+                        <i class="fas fa-sign-out-alt mr-2"></i>
+                        Logout
+                    </a>
                 {% else %}
-                    <a href="{% url 'login' %}" class="hover:text-blue-200">Login</a>
-                    <a href="{% url 'register' %}" class="hover:text-blue-200">Register</a>
+                    <a href="{% url 'login' %}" class="inline-flex items-center hover:text-blue-200 transition-colors">
+                        <i class="fas fa-sign-in-alt mr-2"></i>
+                        Login
+                    </a>
+                    <a href="{% url 'register' %}" 
+                       class="inline-flex items-center px-4 py-2 border-2 border-white rounded-lg hover:bg-white hover:text-blue-600 transition-colors">
+                        <i class="fas fa-user-plus mr-2"></i>
+                        Register
+                    </a>
                 {% endif %}
             </div>
         </nav>
     </header>
 
+    <!-- Enhanced Main Content -->
     <main class="container mx-auto px-4 py-8 flex-grow">
         {% if messages %}
-            {% for message in messages %}
-                <div class="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-4" role="alert">
-                    {{ message }}
-                </div>
-            {% endfor %}
+            <div class="space-y-2">
+                {% for message in messages %}
+                    <div x-data="{ show: true }"
+                         x-show="show"
+                         x-transition
+                         class="relative bg-white border-l-4 p-4 mb-4 shadow-md rounded-r-lg hover-scale
+                               {% if message.tags == 'success' %}border-green-500 text-green-700
+                               {% elif message.tags == 'error' %}border-red-500 text-red-700
+                               {% else %}border-blue-500 text-blue-700{% endif %}"
+                         role="alert">
+                        <div class="flex items-center">
+                            <i class="fas {% if message.tags == 'success' %}fa-check-circle
+                                          {% elif message.tags == 'error' %}fa-exclamation-circle
+                                          {% else %}fa-info-circle{% endif %} mr-3"></i>
+                            {{ message }}
+                        </div>
+                        <button @click="show = false" 
+                                class="absolute top-0 right-0 p-4 text-gray-400 hover:text-gray-900">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                {% endfor %}
+            </div>
         {% endif %}
 
         {% block content %}{% endblock %}
     </main>
 
-    <footer class="bg-gray-800 text-white py-4">
-        <div class="container mx-auto px-4 text-center">
-            <p>&copy; {% now "Y" %} Resume Builder. All rights reserved.</p>
+    <!-- Enhanced Footer -->
+    <footer class="bg-gray-800 text-white py-8">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="text-center md:text-left">
+                    <h3 class="text-lg font-bold mb-4">Resume Builder</h3>
+                    <p class="text-gray-400">Create professional resumes in minutes</p>
+                </div>
+                <div class="text-center">
+                    <h3 class="text-lg font-bold mb-4">Quick Links</h3>
+                    <ul class="space-y-2">
+                        <li><a href="{% url 'home' %}" class="text-gray-400 hover:text-white transition-colors">Home</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors">About</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="text-center md:text-right">
+                    <h3 class="text-lg font-bold mb-4">Connect</h3>
+                    <div class="space-x-4">
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <i class="fab fa-twitter text-xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <i class="fab fa-linkedin text-xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <i class="fab fa-github text-xl"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-8 pt-8 border-t border-gray-700 text-center text-gray-400">
+                <p>&copy; {% now "Y" %} Resume Builder. All rights reserved.</p>
+            </div>
         </div>
     </footer>
 </body>
 </html>
-
