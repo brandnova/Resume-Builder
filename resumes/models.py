@@ -4,6 +4,32 @@ from django.utils.text import slugify
 from django_ckeditor_5.fields import CKEditor5Field
 import uuid
 
+class ResumeTemplate(models.Model):
+    name = models.CharField(max_length=100)
+    description = models.TextField()
+    preview_image = models.ImageField(upload_to='template_previews/')
+    price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    html_content = models.TextField(help_text="Enter the complete HTML template code")
+    css_content = models.TextField(blank=True, help_text="Additional CSS styles")
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def is_free(self):
+        return self.price == 0
+
+class UserTemplate(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    template = models.ForeignKey(ResumeTemplate, on_delete=models.CASCADE)
+    purchased_at = models.DateTimeField(auto_now_add=True)
+    payment_reference = models.CharField(max_length=100, blank=True)
+
+    class Meta:
+        unique_together = ['user', 'template']
+
 class Resume(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     title = models.CharField(max_length=100)
@@ -11,6 +37,7 @@ class Resume(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     is_complete = models.BooleanField(default=False)
     slug = models.SlugField(unique=True, blank=True)
+    template = models.ForeignKey(ResumeTemplate, on_delete=models.SET_NULL, null=True)
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -86,3 +113,10 @@ class CustomSection(models.Model):
     section_name = models.CharField(max_length=100)
     content = CKEditor5Field('Content', config_name='default')
 
+class PDFDownload(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    resume = models.ForeignKey(Resume, on_delete=models.CASCADE)
+    template = models.ForeignKey(ResumeTemplate, on_delete=models.CASCADE)
+    payment_reference = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_free = models.BooleanField(default=False)  # For template purchase bonus

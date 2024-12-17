@@ -1,7 +1,8 @@
 from django.contrib import admin
+from django.utils.safestring import mark_safe
 from .models import (
     Resume, PersonalInfo, WorkExperience, Education, Skill, 
-    Project, Certification, Language, Reference, CustomSection
+    Project, Certification, Language, Reference, CustomSection, ResumeTemplate, UserTemplate, PDFDownload
 )
 
 # Inline models for easier management within the Resume admin
@@ -19,7 +20,6 @@ class EducationInline(admin.TabularInline):
 
 class SkillInline(admin.TabularInline):
     model = Skill
-    extra = 3
 
 class ProjectInline(admin.TabularInline):
     model = Project
@@ -39,7 +39,7 @@ class ReferenceInline(admin.TabularInline):
 
 class CustomSectionInline(admin.StackedInline):
     model = CustomSection
-    extra = 1
+    extra = 0
 
 # Main Resume admin configuration
 @admin.register(Resume)
@@ -109,3 +109,19 @@ class ReferenceAdmin(admin.ModelAdmin):
 class CustomSectionAdmin(admin.ModelAdmin):
     list_display = ('section_name', 'resume')
     search_fields = ('section_name',)
+
+@admin.register(ResumeTemplate)
+class ResumeTemplateAdmin(admin.ModelAdmin):
+    list_display = ['name', 'price', 'is_active', 'created_at']
+    list_filter = ['is_active', 'price']
+    search_fields = ['name', 'description']
+    readonly_fields = ['created_at'] 
+
+@admin.register(UserTemplate)
+class UserTemplateAdmin(admin.ModelAdmin):
+    list_display = ['user', 'template', 'purchased_at']
+    list_filter = ['purchased_at']
+    search_fields = ['user__username', 'template__name']
+
+
+admin.site.register(PDFDownload)

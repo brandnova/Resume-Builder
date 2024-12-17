@@ -1,31 +1,53 @@
-{% extends "resumes/base.html" %}
+{% extends "accounts/dashboard_base.html" %}
 
 {% block content %}
-<div class="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-md">
-    <h2 class="text-2xl font-bold mb-6">Personal Information</h2>
-    
-    <form method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        
-        <div class="grid grid-cols-2 gap-4">
-            {% for field in form %}
-                <div class="mb-4">
-                    {{ field.label_tag }}
-                    {{ field }}
-                    {% if field.errors %}
-                        <div class="text-red-500">
-                            {% for error in field.errors %}
-                                {{ error }}
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                </div>
-            {% endfor %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Progress Indicator -->
+    <div class="mb-6">
+        <div class="flex justify-between items-center mb-2">
+            <span class="text-sm font-medium text-gray-700">Resume Progress</span>
+            <span class="text-sm font-medium text-blue-600">Step 1 of 7</span>
         </div>
-        
-        <button type="submit" class="w-full bg-blue-500 text-white py-2 rounded">
-            Save and Continue
-        </button>
-    </form>
+        <div class="h-2 bg-gray-200 rounded-full">
+            <div class="h-2 bg-blue-600 rounded-full" style="width: 14%"></div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+        <div class="bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-8">
+            <h2 class="text-2xl font-bold text-white">Personal Information</h2>
+            <p class="mt-2 text-blue-100">Let's start with your basic details</p>
+        </div>
+
+        <form method="post" enctype="multipart/form-data" class="p-6">
+            {% csrf_token %}
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {% for field in form %}
+                    <div class="space-y-1">
+                        <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ field.label }}
+                        </label>
+                        {{ field }}
+                        {% if field.errors %}
+                            <div class="text-sm text-red-600">
+                                {% for error in field.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+
+            <div class="mt-8 flex justify-end">
+                <button type="submit" 
+                        class="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    Save and Continue
+                    <i class="fas fa-arrow-right ml-2"></i>
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
 {% endblock %}

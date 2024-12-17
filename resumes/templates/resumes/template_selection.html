@@ -1,0 +1,103 @@
+{% extends "accounts/dashboard_base.html" %}
+
+{% block content %}
+
+{% if request.GET.payment_status == 'success' %}
+<div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6">
+    <p>Payment successful! You can now use the template.</p>
+</div>
+{% elif request.GET.payment_status == 'failed' %}
+<div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6">
+    <p>Payment verification failed. Please try again or contact support.</p>
+</div>
+{% endif %}
+
+
+<div class="max-w-7xl mx-auto p-4">
+    <h1 class="text-2xl font-bold mb-6">Choose a Template</h1>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Default Template Card -->
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            {% comment %} <img src="#" alt="Default Template" class="w-full h-48 object-cover"> {% endcomment %}
+            <div class="h-48 bg-gray-100 flex items-center justify-center">
+                <span class="text-xl font-semibold text-gray-600">Default Template</span>
+            </div>
+            <div class="p-4">
+                <h3 class="text-lg font-semibold">Default Template</h3>
+                <p class="text-gray-600 text-sm mb-4">Standard professional resume layout</p>
+                <button onclick="selectTemplate('default')" 
+                        class="w-full bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
+                    Use Default
+                </button>
+            </div>
+        </div>
+
+        {% if templates %}
+            {% for template in templates %}
+                <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                    <img src="{{ template.preview_image.url }}" alt="{{ template.name }}" class="w-full h-48 object-cover">
+                    <div class="p-4">
+                        <h3 class="text-lg font-semibold">{{ template.name }}</h3>
+                        <p class="text-gray-600 text-sm mb-4">{{ template.description }}</p>
+                        
+                        {% if template in user_templates or template.is_free %}
+                            <button onclick="selectTemplate({{ template.id }})" 
+                                    class="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                                Select Template
+                            </button>
+                        {% else %}
+                            <div class="flex gap-2">
+                                <button onclick="previewTemplate({{ template.id }})" 
+                                        class="w-1/2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                                    Preview
+                                </button>
+                                <button onclick="initializePayment({{ template.id }})" 
+                                        class="w-1/2 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                                    Purchase (₦{{ template.price }})
+                                </button>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    function selectTemplate(templateId) {
+        const resumeSlug = new URLSearchParams(window.location.search).get('resume_slug');
+        const url = templateId === 'default' 
+            ? `/resumes/select-template/default/?resume_slug=${resumeSlug}`
+            : `/resumes/select-template/${templateId}/?resume_slug=${resumeSlug}`;
+        
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        }).then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                window.location.href = `/resumes/${resumeSlug}/preview/?t=${Date.now()}`;
+            }
+        });
+    }
+
+    function initializePayment(templateId) {
+        fetch(`/resumes/initialize-payment/${templateId}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    window.location.href = data.data.authorization_url;
+                }
+            });
+    }
+
+    function previewTemplate(templateId) {
+        const resumeSlug = new URLSearchParams(window.location.search).get('resume_slug');
+        window.location.href = `/resumes/preview-template/${templateId}/?resume_slug=${resumeSlug}`;
+    }
+</script>
+{% endblock %}

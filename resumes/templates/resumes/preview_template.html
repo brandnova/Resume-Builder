@@ -1,0 +1,55 @@
+{% extends "accounts/dashboard_base.html" %}
+
+{% block content %}
+
+{% if request.GET.payment_status == 'success' %}
+<div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6">
+    <p>Payment successful! You can now use the template.</p>
+</div>
+{% elif request.GET.payment_status == 'failed' %}
+<div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6">
+    <p>Payment verification failed. Please try again or contact support.</p>
+</div>
+{% endif %}
+
+
+<div class="bg-gray-100 min-h-screen">
+    <!-- Preview Banner -->
+    <div class="bg-blue-600 text-white py-4">
+        <div class="max-w-7xl mx-auto px-4 flex justify-between items-center">
+            <div>
+                <h1 class="text-xl font-bold">Preview: {{ template.name }}</h1>
+                <p class="text-sm">This is a preview of how your resume will look with this template</p>
+            </div>
+            <div class="flex gap-4">
+                <button onclick="history.back()" 
+                        class="px-4 py-2 bg-white text-blue-600 rounded hover:bg-blue-50">
+                    Back
+                </button>
+                <button onclick="initializePayment({{ template.id }})" 
+                        class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
+                    Purchase (₦{{ template.price }})
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Template Preview -->
+    <div class="max-w-7xl mx-auto py-8 px-4">
+        {{ rendered_template|safe }}
+    </div>
+</div>
+
+<script>
+    function initializePayment(templateId) {
+        fetch(`/resumes/initialize-payment/${templateId}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    window.location.href = data.data.authorization_url;
+                }
+            });
+    }
+
+</script>
+{% endblock %}

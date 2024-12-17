@@ -73,6 +73,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'core.context_processors.site_settings',
             ],
         },
     },
@@ -146,16 +147,16 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # For development
 
-# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-# EMAIL_HOST = 'smtp.gmail.com'
-# EMAIL_PORT = 587
-# EMAIL_USE_TLS = True
-# EMAIL_HOST_USER = 'brandnova89@gmail.com'
-# EMAIL_HOST_PASSWORD = 'zxgc intt dvax quzy'
-
 # Default from email
 DEFAULT_FROM_EMAIL = 'brandnova89@gmail.com'
 
+
+PAYSTACK_SECRET_KEY = 'sk_test_e6bd21e28df1b493f12d70c2689cd15b5a08802b'
+
+PAYSTACK_PUBLIC_KEY = 'pk_test_2b07396de3182eeb036f47ca499c478dd33ec854'
+
+# PDF Generation Settings
+WKHTMLTOPDF_PATH = r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe'
 
 # Path to store uploaded images
 CKEDITOR_UPLOAD_PATH = "ckeditor/uploads/"
