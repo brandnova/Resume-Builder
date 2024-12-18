@@ -64,4 +64,10 @@ urlpatterns = [
      path('<slug:resume_slug>/initialize-pdf-payment/', views.initialize_pdf_payment, name='initialize_pdf_payment'),
      path('<slug:resume_slug>/verify-pdf-payment/', views.verify_pdf_payment, name='pdf_payment_verify'),
 
+     # DOCX Management Routes
+     path('<str:resume_slug>/initialize-docx-payment/', views.initialize_docx_payment, name='initialize_docx_payment'),
+     path('<str:resume_slug>/generate-docx/', views.generate_docx, name='generate_docx'),
+     path('<str:resume_slug>/verify-docx-payment/', views.verify_docx_payment, name='verify_docx_payment'),
+
+
 ]

@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.utils.safestring import mark_safe
 from .models import (
     Resume, PersonalInfo, WorkExperience, Education, Skill, 
-    Project, Certification, Language, Reference, CustomSection, ResumeTemplate, UserTemplate, PDFDownload
+    Project, Certification, Language, Reference, CustomSection, ResumeTemplate, UserTemplate, PDFDownload, DOCXDownload
 )
 
 # Inline models for easier management within the Resume admin
@@ -125,3 +125,4 @@ class UserTemplateAdmin(admin.ModelAdmin):
 
 
 admin.site.register(PDFDownload)
+admin.site.register(DOCXDownload)

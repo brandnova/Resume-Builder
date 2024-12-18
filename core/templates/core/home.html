@@ -1,50 +1,61 @@
 {% extends 'core/base.html' %}
 
-{% block title %}Welcome to Resume Builder{% endblock %}
+{% block title %}Welcome to {{ site_settings.site_name }}{% endblock %}
 
 {% block content %}
 <div x-data="{ activeTab: 'templates' }" class="space-y-16">
     <!-- Hero Section -->
-    <section class="py-20 text-center">
+    <section class="py-20 text-center relative overflow-hidden">
+        <!-- Animated Background -->
+        <div class="absolute inset-0 -z-10">
+            <div class="absolute top-20 left-20 w-72 h-72 bg-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
+            <div class="absolute top-20 right-20 w-72 h-72 bg-purple-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
+            <div class="absolute -bottom-8 left-20 w-72 h-72 bg-pink-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
+        </div>
+
         <h1 class="text-5xl md:text-6xl font-extrabold mb-6 animate__animated animate__fadeIn">
             <span class="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
                 Create Your Dream Resume
             </span>
         </h1>
-        <p class="text-xl md:text-2xl text-gray-600 mb-12 animate__animated animate__fadeIn animate__delay-1s">
-            Professional templates, AI-powered suggestions, and instant PDF download
+
+        <p class="text-xl md:text-2xl text-gray-600 mb-12 animate__animated animate__fadeIn animate__delay-1s max-w-3xl mx-auto">
+            {{ site_settings.site_description }}
         </p>
         
         <div class="flex flex-col sm:flex-row justify-center gap-4 mb-12 animate__animated animate__fadeIn animate__delay-2s">
             {% if user.is_authenticated %}
-                <a href="{% url 'dashboard' %}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg transform hover:scale-105 transition-all">
+                <a href="{% url 'dashboard' %}" class="group bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg transform transition-all hover:scale-105 hover:shadow-lg flex items-center justify-center">
+                    <i class="fas fa-columns mr-2 group-hover:animate-bounce"></i>
                     Go to Dashboard
                 </a>
             {% else %}
-                <a href="{% url 'register' %}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg transform hover:scale-105 transition-all">
+                <a href="{% url 'register' %}" class="group bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg transform transition-all hover:scale-105 hover:shadow-lg flex items-center justify-center">
+                    <i class="fas fa-rocket mr-2 group-hover:animate-bounce"></i>
                     Get Started Free
                 </a>
-                <a href="{% url 'login' %}" class="bg-white hover:bg-gray-50 text-gray-800 font-bold py-3 px-8 rounded-lg border-2 transform hover:scale-105 transition-all">
+                <a href="{% url 'login' %}" class="group bg-white hover:bg-gray-50 text-gray-800 font-bold py-3 px-8 rounded-lg border-2 transform transition-all hover:scale-105 hover:shadow-lg flex items-center justify-center">
+                    <i class="fas fa-sign-in-alt mr-2 group-hover:animate-bounce"></i>
                     Sign In
                 </a>
             {% endif %}
         </div>
 
-        <!-- Stats -->
+        <!-- Stats Section -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
-            <div class="p-4 bg-white rounded-lg shadow-lg transform hover:scale-105 transition-all">
-                <div class="text-3xl font-bold text-blue-600">50K+</div>
+            <div class="p-4 bg-white rounded-lg shadow-lg hover-scale">
+                <div class="text-3xl font-bold text-blue-600" x-data x-intersect="$el.textContent = '50K+'">0</div>
                 <div class="text-gray-600">Resumes Created</div>
             </div>
-            <div class="p-4 bg-white rounded-lg shadow-lg transform hover:scale-105 transition-all">
-                <div class="text-3xl font-bold text-blue-600">100+</div>
+            <div class="p-4 bg-white rounded-lg shadow-lg hover-scale">
+                <div class="text-3xl font-bold text-blue-600">{{ featured_templates.count }}+</div>
                 <div class="text-gray-600">Templates</div>
             </div>
-            <div class="p-4 bg-white rounded-lg shadow-lg transform hover:scale-105 transition-all">
-                <div class="text-3xl font-bold text-blue-600">90%</div>
+            <div class="p-4 bg-white rounded-lg shadow-lg hover-scale">
+                <div class="text-3xl font-bold text-blue-600" x-data x-intersect="$el.textContent = '90%'">0%</div>
                 <div class="text-gray-600">Success Rate</div>
             </div>
-            <div class="p-4 bg-white rounded-lg shadow-lg transform hover:scale-105 transition-all">
+            <div class="p-4 bg-white rounded-lg shadow-lg hover-scale">
                 <div class="text-3xl font-bold text-blue-600">24/7</div>
                 <div class="text-gray-600">Support</div>
             </div>
@@ -54,37 +65,64 @@
     <!-- Features Tabs -->
     <section class="bg-white py-16 rounded-2xl shadow-lg">
         <div class="max-w-6xl mx-auto px-4">
-            <div class="flex space-x-4 mb-8 overflow-x-auto">
+            <div class="flex space-x-4 mb-8 overflow-x-auto justify-center">
                 <button 
                     @click="activeTab = 'templates'" 
                     :class="{ 'border-blue-600 text-blue-600': activeTab === 'templates' }"
-                    class="px-4 py-2 border-b-2 font-medium transition-colors">
+                    class="px-4 py-2 border-b-2 font-medium transition-colors flex items-center">
+                    <i class="fas fa-th-large mr-2"></i>
                     Templates
                 </button>
                 <button 
                     @click="activeTab = 'ai'" 
                     :class="{ 'border-blue-600 text-blue-600': activeTab === 'ai' }"
-                    class="px-4 py-2 border-b-2 font-medium transition-colors">
+                    class="px-4 py-2 border-b-2 font-medium transition-colors flex items-center">
+                    <i class="fas fa-robot mr-2"></i>
                     AI Assistant
                 </button>
                 <button 
                     @click="activeTab = 'export'" 
                     :class="{ 'border-blue-600 text-blue-600': activeTab === 'export' }"
-                    class="px-4 py-2 border-b-2 font-medium transition-colors">
+                    class="px-4 py-2 border-b-2 font-medium transition-colors flex items-center">
+                    <i class="fas fa-file-export mr-2"></i>
                     Export Options
                 </button>
             </div>
 
-            <div x-show="activeTab === 'templates'" class="grid md:grid-cols-3 gap-8">
-                <div class="bg-gray-50 p-6 rounded-xl">
-                    <img src="https://placehold.co/300x400" alt="Template Preview" class="rounded-lg mb-4">
-                    <h3 class="text-xl font-semibold mb-2">Professional Template</h3>
-                    <p class="text-gray-600">Clean and modern design for corporate positions</p>
-                </div>
-                <!-- Add more templates -->
+            <!-- Templates Tab -->
+            <div x-show="activeTab === 'templates'" 
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="opacity-0 transform translate-y-4"
+                 x-transition:enter-end="opacity-100 transform translate-y-0"
+                 class="grid md:grid-cols-3 gap-8">
+                 {% for template in featured_templates %}
+                    {% if template.is_free %}
+                        <div class="bg-gray-50 p-6 rounded-xl hover-scale group">
+                            <div class="relative overflow-hidden rounded-lg mb-4">
+                                <img src="{{ template.preview_image.url }}" alt="{{ template.name }}" 
+                                    class="w-full h-auto transform transition-transform group-hover:scale-105">
+                                <span class="absolute top-2 right-2 bg-green-500 text-white px-3 py-1 rounded-full text-sm">
+                                    Free
+                                </span>
+                            </div>
+                            <h3 class="text-xl font-semibold mb-2">{{ template.name }}</h3>
+                            <p class="text-gray-600">{{ template.description }}</p>
+                            <a href="{% if request.user.is_authenticated %}{% url 'dashboard' %}{% else %}{% url 'login' %}{% endif %}" 
+                                class="mt-4 inline-flex items-center text-blue-600 hover:text-blue-700">
+                                Use Template <i class="fas fa-arrow-right ml-2"></i>
+                            </a>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+             
             </div>
 
-            <div x-show="activeTab === 'ai'" class="text-center">
+            <!-- AI Assistant Tab -->
+            <div x-show="activeTab === 'ai'" 
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="opacity-0 transform translate-y-4"
+                 x-transition:enter-end="opacity-100 transform translate-y-0"
+                 class="text-center">
                 <lottie-player 
                     src="https://assets2.lottiefiles.com/packages/lf20_xyadoh9h.json"
                     background="transparent"
@@ -94,19 +132,33 @@
                     autoplay>
                 </lottie-player>
                 <h3 class="text-2xl font-bold mb-4">AI-Powered Suggestions</h3>
-                <p class="text-gray-600">Get smart recommendations for your resume content</p>
+                <p class="text-gray-600 max-w-2xl mx-auto">
+                    Get smart recommendations for your resume content, tailored to your industry and experience level.
+                </p>
             </div>
 
-            <div x-show="activeTab === 'export'" class="text-center">
+            <!-- Export Options Tab -->
+            <div x-show="activeTab === 'export'"
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="opacity-0 transform translate-y-4"
+                 x-transition:enter-end="opacity-100 transform translate-y-0"
+                 class="text-center">
                 <div class="grid md:grid-cols-3 gap-8">
-                    <div class="p-6 rounded-xl bg-gray-50">
-                        <svg class="w-12 h-12 text-blue-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                        </svg>
+                    <div class="p-6 rounded-xl bg-gray-50 hover-scale">
+                        <i class="fas fa-file-pdf text-4xl text-blue-600 mb-4"></i>
                         <h3 class="text-xl font-semibold mb-2">PDF Export</h3>
-                        <p class="text-gray-600">Download your resume in PDF format</p>
+                        <p class="text-gray-600">Download your resume in professional PDF format</p>
                     </div>
-                    <!-- Add more export options -->
+                    <div class="p-6 rounded-xl bg-gray-50 hover-scale">
+                        <i class="fas fa-file-word text-4xl text-blue-600 mb-4"></i>
+                        <h3 class="text-xl font-semibold mb-2">Word Export</h3>
+                        <p class="text-gray-600">Download your resume in editable DOCX format</p>
+                    </div>
+                    <div class="p-6 rounded-xl bg-gray-50 hover-scale">
+                        <i class="fas fa-link text-4xl text-blue-600 mb-4"></i>
+                        <h3 class="text-xl font-semibold mb-2">Share Link</h3>
+                        <p class="text-gray-600">Get a shareable link to your online resume</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -116,9 +168,9 @@
     <section class="py-16">
         <h2 class="text-3xl font-bold text-center mb-12">What Our Users Say</h2>
         <div class="grid md:grid-cols-3 gap-8">
-            <div class="bg-white p-6 rounded-xl shadow-lg">
+            <div class="bg-white p-6 rounded-xl shadow-lg hover-scale">
                 <div class="flex items-center mb-4">
-                    <img src="https://placehold.co/50x50" alt="User" class="rounded-full mr-4">
+                    <img src="https://api.dicebear.com/6.x/avataaars/svg?seed=John" alt="User" class="w-12 h-12 rounded-full mr-4">
                     <div>
                         <h4 class="font-semibold">John Doe</h4>
                         <p class="text-gray-600">Software Engineer</p>
@@ -126,8 +178,53 @@
                 </div>
                 <p class="text-gray-600">"Got my dream job using this resume builder. The templates are amazing!"</p>
             </div>
-            <!-- Add more testimonials -->
+            <div class="bg-white p-6 rounded-xl shadow-lg hover-scale">
+                <div class="flex items-center mb-4">
+                    <img src="https://api.dicebear.com/6.x/avataaars/svg?seed=Sarah" alt="User" class="w-12 h-12 rounded-full mr-4">
+                    <div>
+                        <h4 class="font-semibold">Sarah Johnson</h4>
+                        <p class="text-gray-600">Marketing Manager</p>
+                    </div>
+                </div>
+                <p class="text-gray-600">"The AI suggestions helped me highlight my achievements perfectly."</p>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-lg hover-scale">
+                <div class="flex items-center mb-4">
+                    <img src="https://api.dicebear.com/6.x/avataaars/svg?seed=Michael" alt="User" class="w-12 h-12 rounded-full mr-4">
+                    <div>
+                        <h4 class="font-semibold">Michael Brown</h4>
+                        <p class="text-gray-600">Product Designer</p>
+                    </div>
+                </div>
+                <p class="text-gray-600">"Clean, professional templates that made my resume stand out."</p>
+            </div>
         </div>
     </section>
 </div>
+
+<!-- Custom Animations -->
+<style>
+    @keyframes blob {
+        0% { transform: translate(0px, 0px) scale(1); }
+        33% { transform: translate(30px, -50px) scale(1.1); }
+        66% { transform: translate(-20px, 20px) scale(0.9); }
+        100% { transform: translate(0px, 0px) scale(1); }
+    }
+    .animate-blob {
+        animation: blob 7s infinite;
+    }
+    .animation-delay-2000 {
+        animation-delay: 2s;
+    }
+    .animation-delay-4000 {
+        animation-delay: 4s;
+    }
+    .hover-scale {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .hover-scale:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+</style>
 {% endblock %}

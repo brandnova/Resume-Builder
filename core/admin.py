@@ -2,7 +2,7 @@ from django.contrib import admin
 from .models import SiteSettings
 
 class SiteSettingsAdmin(admin.ModelAdmin):
-    list_display = ('site_name', 'contact_email', 'pdf_download_price')
+    list_display = ('site_name', 'contact_email')
     fieldsets = (
         ('General Information', {
             'fields': (
@@ -31,7 +31,9 @@ class SiteSettingsAdmin(admin.ModelAdmin):
         ('Pricing', {
             'fields': (
                 'pdf_download_price',
-            )
+                'docx_download_price',
+            ),
+            'classes': ['collapse'],  # Collapse this section by default
         }),
     )
 

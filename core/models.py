@@ -22,6 +22,11 @@ class SiteSettings(models.Model):
         decimal_places=2,
         help_text="Price for downloading resume as PDF"
     )
+    docx_download_price = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2,
+        help_text="Price for downloading resume as DOCX"
+    )
     
     class Meta:
         verbose_name = "Site Settings"

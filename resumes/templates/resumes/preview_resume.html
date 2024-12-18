@@ -4,10 +4,28 @@
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 py-8">
     {% if resume.template %}
-        <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4">
+        <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4 rounded-lg">
             <p class="font-medium">Current Template: {{ resume.template.name }}</p>
         </div>
     {% endif %}
+    
+    <div id="mobile-notification" class="fixed bottom-0 left-0 right-0 z-50 block md:hidden">
+        <div class="bg-blue-100 p-4 m-4 rounded-lg shadow-lg relative">
+            <button id="close-notification" class="absolute top-2 right-2 text-blue-600 hover:text-blue-800">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+            <div class="pr-6">
+                <p class="text-sm font-semibold text-blue-800">
+                    It is advisable to view/download your resume on a larger screen!
+                </p>
+                <p class="text-xs text-blue-600 mt-1">
+                    Resize or view on a larger device for better results.
+                </p>
+            </div>
+        </div>
+    </div>
 
     <!-- Header Actions Bar -->
     <div class="bg-gradient-to-r from-blue-900 to-blue-600 rounded-2xl shadow-lg mb-8">
@@ -15,18 +33,31 @@
         <div class="md:hidden p-4">
             <div class="flex justify-between items-center mb-4">
                 <h1 class="text-xl font-bold text-white">{{ resume.title }}</h1>
-                <button x-data @click="$dispatch('toggle-toolbar')" class="text-white">
-                    <i class="fas fa-bars"></i>
+                <button 
+                    x-data 
+                    @click="$dispatch('toggle-toolbar')" 
+                    class="text-white transform transition-transform active:scale-90 p-2 rounded-full hover:bg-blue-700/30"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
                 </button>
             </div>
             
-            <div x-data="{ open: false }" 
-                 @toggle-toolbar.window="open = !open"
-                 x-show="open"
-                 x-transition
-                 class="space-y-3">
+            <div 
+                x-data="{ open: false }" 
+                @toggle-toolbar.window="open = !open"
+                x-show="open"
+                x-transition:enter="transition ease-out duration-300"
+                x-transition:enter-start="opacity-0 translate-y-[-10px]"
+                x-transition:enter-end="opacity-100 translate-y-0"
+                x-transition:leave="transition ease-in duration-200"
+                x-transition:leave-start="opacity-100 translate-y-0"
+                x-transition:leave-end="opacity-0 translate-y-[-10px]"
+                class="space-y-3 bg-blue-800/90 rounded-lg p-4 shadow-lg"
+            >
                 <!-- Status and Time -->
-                <div class="flex items-center justify-between">
+                <div class="flex items-center justify-between mb-4">
                     <span class="px-3 py-1 rounded-full text-xs font-medium 
                         {% if resume.is_complete %}bg-green-400 text-green-900
                         {% else %}bg-yellow-400 text-yellow-900{% endif %}">
@@ -38,28 +69,51 @@
                     </span>
                 </div>
                 
-                <!-- Primary Actions -->
-                <div class="flex flex-col gap-2 text-white">
+                <!-- Primary Actions with improved interactive states -->
+                <div class="grid grid-cols-1 gap-3">
                     {% if has_free_download %}
-                        <a href="{% url 'generate_pdf' resume.slug %}" class="btn-primary w-full text-white">
-                            <i class="fas fa-download mr-2"></i>Download PDF (Free)
+                        <a href="{% url 'generate_pdf' resume.slug %}" class="btn-primary w-full text-white transform transition-all hover:scale-[1.02] active:scale-95">
+                            <i class="fa-solid fa-file-pdf mr-2"></i>Download PDF (Free)
                         </a>
                     {% else %}
-                        <button onclick="initializePDFPayment()" class="btn-primary w-full text-white">
-                            <i class="fas fa-download mr-2"></i>Download PDF (₦{{ site_settings.pdf_download_price }})
+                        <button onclick="initializePDFPayment()" class="btn-primary w-full text-white transform transition-all hover:scale-[1.02] active:scale-95">
+                            <i class="fa-solid fa-file-pdf mr-2"></i>Download PDF (₦{{ site_settings.pdf_download_price }})
                         </button>
                     {% endif %}
+
+                    <!-- Add this next to the PDF download button -->
+                    {% if has_free_download %}
+                    <a href="{% url 'generate_docx' resume.slug %}" class="btn-primary w-full text-white transform transition-all hover:scale-[1.02] active:scale-95">
+                        <i class="fas fa-file-word mr-2"></i>Download DOCX (Free)
+                    </a>
+                    {% else %}
+                    <button onclick="initializeDOCXPayment()" class="btn-primary w-full text-white transform transition-all hover:scale-[1.02] active:scale-95">
+                        <i class="fas fa-file-word mr-2"></i>Download DOCX (₦{{ site_settings.docx_download_price }})
+                    </button>
+                    {% endif %}
+
                     
-                    <a href="{% url 'edit_resume' resume.slug %}" class="btn-secondary w-full text-white">
+                    <a href="{% url 'edit_resume' resume.slug %}" class="btn-secondary w-full text-white transform transition-all hover:scale-[1.02] active:scale-95">
                         <i class="far fa-edit mr-2"></i>Edit
                     </a>
                     
-                    <a href="{% url 'public_resume_view' resume.slug %}" target="_blank" class="btn-secondary w-full text-white">
-                        <i class="fas fa-link mr-2"></i>Public Link
+                    <a href="{% url 'public_resume_view' resume.slug %}" target="_blank" class="btn-secondary w-full text-white transform transition-all hover:scale-[1.02] active:scale-95">
+                        <i class="fas fa-link mr-2"></i>View Public
                     </a>
                     
-                    <a href="{% url 'template_selection' %}?resume_slug={{ resume.slug }}" class="btn-secondary w-full text-white">
+                    <a href="{% url 'template_selection' %}?resume_slug={{ resume.slug }}" class="btn-secondary w-full text-white transform transition-all hover:scale-[1.02] active:scale-95">
                         <i class="fas fa-palette mr-2"></i>Change Template
+                    </a>
+                    
+                    <a data-copy="{{ domain }}{% url 'public_resume_view' resume.slug %}" 
+                            class="btn-secondary w-full text-white transform transition-all hover:scale-[1.02] active:scale-95">
+                        <i class="far fa-copy mr-2"></i>Copy Link
+                    </a>
+                    
+                    <a href="{% url 'delete_resume' resume.slug %}"
+                        onclick="return confirm('Are you sure you want to delete this resume?')"
+                        class="btn-delete w-full text-red-400 transform transition-all hover:scale-[1.02] active:scale-95">
+                        <i class="far fa-trash-alt mr-2"></i>Delete
                     </a>
                 </div>
             </div>
@@ -90,12 +144,22 @@
                 <div class="flex gap-3">
                     {% if has_free_download %}
                         <a href="{% url 'generate_pdf' resume.slug %}" class="btn-primary text-white">
-                            <i class="fas fa-download mr-2"></i>Download PDF (Free)
+                            <i class="fa-solid fa-file-pdf mr-2"></i>Download PDF (Free)
                         </a>
                     {% else %}
                         <button onclick="initializePDFPayment()" class="btn-primary text-white">
-                            <i class="fas fa-download mr-2"></i>Download PDF (₦{{ site_settings.pdf_download_price }})
+                            <i class="fa-solid fa-file-pdf mr-2"></i>Download PDF (₦{{ site_settings.pdf_download_price }})
                         </button>
+                    {% endif %}
+
+                    {% if has_free_download %}
+                    <a href="{% url 'generate_docx' resume.slug %}" class="btn-primary text-white">
+                        <i class="fas fa-file-word mr-2"></i>Download DOCX (Free)
+                    </a>
+                    {% else %}
+                    <button onclick="initializeDOCXPayment()" class="btn-primary text-white">
+                        <i class="fas fa-file-word mr-2"></i>Download DOCX (₦{{ site_settings.docx_download_price }})
+                    </button>
                     {% endif %}
                     
                     <a href="{% url 'edit_resume' resume.slug %}" class="btn-secondary text-white">
@@ -106,7 +170,7 @@
                 <!-- Secondary Actions -->
                 <div class="flex items-center gap-3">
                     <a href="{% url 'public_resume_view' resume.slug %}" target="_blank" class="btn-secondary text-white">
-                        <i class="fas fa-link mr-2"></i>Public Link
+                        <i class="fas fa-link mr-2"></i>View Public
                     </a>
                     
                     <a href="{% url 'template_selection' %}?resume_slug={{ resume.slug }}" class="btn-secondary text-white">
@@ -141,7 +205,7 @@
     </div>
 
     <!-- Resume Content -->
-    <div id="resume-content" class="bg-white shadow rounded-lg">
+    <div id="resume-content" class="bg-white shadow rounded-lg p-3">
         {% if resume.template %}
             {{ rendered_template|safe }}
         {% else %}
@@ -151,24 +215,50 @@
 </div>
 
 <style>
-.btn-primary {
-    @apply inline-flex items-center justify-center px-4 py-2 bg-blue-400 text-white rounded-lg text-sm font-medium hover:bg-blue-500 transition-colors shadow-md;
-}
-
-.btn-secondary {
-    @apply inline-flex items-center justify-center px-4 py-2 border border-blue-300 rounded-lg text-sm font-medium text-white bg-blue-700 hover:bg-blue-600 transition-colors shadow-md;
-}
-
-.btn-icon {
-    @apply p-2 hover:bg-blue-700 rounded-lg transition-colors;
-}
-</style>
+    .btn-primary {
+        @apply inline-flex items-center justify-center px-4 py-2 bg-blue-400 text-white rounded-lg text-sm font-medium hover:bg-blue-500 transition-colors shadow-md;
+    }
+    
+    .btn-secondary {
+        @apply inline-flex items-center justify-center px-4 py-2 border border-blue-300 rounded-lg text-sm font-medium text-white bg-blue-700 hover:bg-blue-600 transition-colors shadow-md;
+    }
+    
+    .btn-delete {
+        @apply inline-flex items-center justify-center px-4 py-2 bg-red-500 rounded-lg text-sm font-medium hover:bg-red-600 transition-colors shadow-md;
+    }
+    
+    .btn-icon {
+        @apply p-2 hover:bg-blue-700 rounded-lg transition-colors;
+    }
+    </style>
+    
 
 <script>
     const resumeSlug = '{{ resume.slug }}';
 
     function initializePDFPayment() {
         fetch(`/resumes/${resumeSlug}/initialize-pdf-payment/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                window.location.href = data.data.authorization_url;
+            } else {
+                alert('Payment initialization failed. Please try again.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred. Please try again.');
+        });
+    }
+
+    function initializeDOCXPayment() {
+        fetch(`/resumes/${resumeSlug}/initialize-docx-payment/`, {
             method: 'POST',
             headers: {
                 'X-CSRFToken': '{{ csrf_token }}'
@@ -206,5 +296,16 @@
         title: "{{ resume.title|escapejs }}",
         slug: "{{ resume.slug }}"
     };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const notification = document.getElementById('mobile-notification');
+        const closeButton = document.getElementById('close-notification');
+
+        closeButton.addEventListener('click', () => {
+            notification.style.display = 'none';
+            
+        });
+
+    });
 </script>
 {% endblock %}

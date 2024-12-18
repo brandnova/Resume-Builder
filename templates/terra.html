@@ -1,0 +1,249 @@
+{% load resume_filters %}
+<div class="min-h-screen bg-[#F5F5F4] text-neutral-800 font-sans">
+    <!-- Executive Header -->
+    <header class="bg-[#4A3729] text-[#F4EDE4] py-16">
+        <div class="max-w-7xl mx-auto px-6 text-center">
+            {% if personal_info.image %}
+            <div class="mb-6 flex justify-center">
+                <img src="{{ personal_info.image.url }}" 
+                     class="w-40 h-40 rounded-full border-4 border-[#705A4A] object-cover shadow-xl"
+                     alt="{{ personal_info.full_name }}">
+            </div>
+            {% endif %}
+            
+            <h1 class="text-4xl md:text-5xl font-light mb-4 tracking-wide">{{ personal_info.full_name }}</h1>
+            
+            <div class="flex flex-col md:flex-row justify-center space-y-3 md:space-y-0 md:space-x-6 text-[#D2B48C] mt-4">
+                {% if personal_info.email %}
+                <div class="flex items-center justify-center">
+                    <i class="fas fa-envelope mr-2"></i>{{ personal_info.email }}
+                </div>
+                {% endif %}
+                {% if personal_info.phone %}
+                <div class="flex items-center justify-center">
+                    <i class="fas fa-phone mr-2"></i>{{ personal_info.phone }}
+                </div>
+                {% endif %}
+                {% if personal_info.location %}
+                <div class="flex items-center justify-center">
+                    <i class="fas fa-location-dot mr-2"></i>{{ personal_info.location }}
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="flex justify-center mt-6 space-x-6">
+                {% if personal_info.linkedin_url %}
+                <a href="{{ personal_info.linkedin_url }}" target="_blank" 
+                   class="text-[#D2B48C] hover:text-white transition-colors text-2xl">
+                    <i class="fab fa-linkedin"></i>
+                </a>
+                {% endif %}
+                {% if personal_info.github_url %}
+                <a href="{{ personal_info.github_url }}" target="_blank"
+                   class="text-[#D2B48C] hover:text-white transition-colors text-2xl">
+                    <i class="fab fa-github"></i>
+                </a>
+                {% endif %}
+                {% if personal_info.website_url %}
+                <a href="{{ personal_info.website_url }}" target="_blank"
+                   class="text-[#D2B48C] hover:text-white transition-colors text-2xl">
+                    <i class="fas fa-globe"></i>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-6 py-12">
+        {% if personal_info.summary %}
+        <section class="mb-16 text-center">
+            <h2 class="text-3xl font-light text-[#4A3729] mb-6 pb-4 border-b border-[#705A4A]">Professional Summary</h2>
+            <p class="max-w-4xl mx-auto text-lg text-neutral-700 leading-relaxed">
+                {{ personal_info.summary }}
+            </p>
+        </section>
+        {% endif %}
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-12">
+            <!-- Main Column -->
+            <div class="lg:col-span-2 space-y-12">
+                {% if work_experiences %}
+                <section>
+                    <h2 class="text-3xl font-light text-[#4A3729] mb-8 pb-4 border-b border-[#705A4A]">
+                        Professional Experience
+                    </h2>
+                    {% for exp in work_experiences %}
+                    <div class="mb-10 border-l-4 border-[#705A4A] pl-6 py-2">
+                        <div class="flex flex-col md:flex-row md:justify-between mb-4">
+                            <div>
+                                <h3 class="text-2xl font-semibold text-[#4A3729]">{{ exp.job_title }}</h3>
+                                <p class="text-xl text-neutral-600">{{ exp.company }}</p>
+                                <p class="text-neutral-500">{{ exp.location }}</p>
+                            </div>
+                            <p class="text-neutral-600 font-medium mt-2 md:mt-0">
+                                {{ exp.start_date|date:"M Y" }} - 
+                                {% if exp.end_date %}{{ exp.end_date|date:"M Y" }}{% else %}Present{% endif %}
+                            </p>
+                        </div>
+                        <p class="text-neutral-700 leading-relaxed">{{ exp.description }}</p>
+                    </div>
+                    {% endfor %}
+                </section>
+                {% endif %}
+
+                {% if projects %}
+                <section>
+                    <h2 class="text-3xl font-light text-[#4A3729] mb-8 pb-4 border-b border-[#705A4A]">
+                        Notable Projects
+                    </h2>
+                    {% for project in projects %}
+                    <div class="mb-8 bg-white shadow-md rounded-lg p-6 hover:shadow-lg transition-shadow">
+                        <div class="flex justify-between items-start mb-4">
+                            <h3 class="text-2xl font-semibold text-[#4A3729]">{{ project.name }}</h3>
+                            <span class="text-neutral-600 text-sm">
+                                {{ project.start_date|date:"M Y" }} - 
+                                {% if project.end_date %}{{ project.end_date|date:"M Y" }}{% else %}Present{% endif %}
+                            </span>
+                        </div>
+                        <p class="text-neutral-700 mb-4">{{ project.description }}</p>
+                        <div class="flex flex-wrap gap-2 mb-4">
+                            {% for tech in project.technologies|split_technologies %}
+                            <span class="px-3 py-1 bg-[#F0E6D2] text-[#4A3729] rounded-full text-sm font-medium">
+                                {{ tech }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                        {% if project.url %}
+                        <a href="{{ project.url }}" target="_blank" 
+                           class="inline-flex items-center text-[#705A4A] hover:text-[#4A3729] transition-colors">
+                            <i class="fas fa-external-link-alt mr-2"></i>View Project
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </section>
+                {% endif %}
+
+                {% if education_entries %}
+                <section>
+                    <h2 class="text-3xl font-light text-[#4A3729] mb-8 pb-4 border-b border-[#705A4A]">
+                        Education
+                    </h2>
+                    {% for edu in education_entries %}
+                    <div class="mb-6 border-l-4 border-[#705A4A] pl-6 py-2">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="text-xl font-semibold text-[#4A3729]">
+                                    {{ edu.degree }} in {{ edu.major }}
+                                </h3>
+                                <p class="text-neutral-600">{{ edu.institution }}</p>
+                                <p class="text-neutral-500">{{ edu.location }}</p>
+                            </div>
+                            <p class="text-neutral-600 text-sm">
+                                {{ edu.start_date|date:"Y" }} - 
+                                {% if edu.end_date %}{{ edu.end_date|date:"Y" }}{% else %}Present{% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </section>
+                {% endif %}
+            </div>
+
+            <!-- Sidebar -->
+            <div class="space-y-12">
+                {% if skills %}
+                <section>
+                    <h2 class="text-3xl font-light text-[#4A3729] mb-6 pb-4 border-b border-[#705A4A]">
+                        Expertise
+                    </h2>
+                    <div class="space-y-4">
+                        {% for skill in skills %}
+                        <div>
+                            <div class="flex justify-between mb-2">
+                                <span class="font-medium text-[#4A3729]">{{ skill.name }}</span>
+                                <span class="text-neutral-600">{{ skill.level }}</span>
+                            </div>
+                            <div class="h-2 bg-[#F0E6D2] rounded-full overflow-hidden">
+                                <div class="h-full bg-[#4A3729] rounded-full"
+                                     style="width: {% if skill.level == 'Beginner' %}25%{% elif skill.level == 'Intermediate' %}50%{% elif skill.level == 'Advanced' %}75%{% else %}100%{% endif %}">
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </section>
+                {% endif %}
+
+                {% if certifications %}
+                <section>
+                    <h2 class="text-3xl font-light text-[#4A3729] mb-6 pb-4 border-b border-[#705A4A]">
+                        Certifications
+                    </h2>
+                    {% for cert in certifications %}
+                    <div class="mb-6 bg-white shadow rounded-lg p-4 hover:shadow-md transition-shadow">
+                        <h3 class="font-semibold text-[#4A3729]">{{ cert.name }}</h3>
+                        <p class="text-neutral-600">{{ cert.organization }}</p>
+                        <p class="text-sm text-neutral-500">
+                            {{ cert.date_obtained|date:"M Y" }}
+                            {% if cert.expiration_date %} - {{ cert.expiration_date|date:"M Y" }}{% endif %}
+                        </p>
+                    </div>
+                    {% endfor %}
+                </section>
+                {% endif %}
+
+                {% if languages %}
+                <section>
+                    <h2 class="text-3xl font-light text-[#4A3729] mb-6 pb-4 border-b border-[#705A4A]">
+                        Languages
+                    </h2>
+                    {% for language in languages %}
+                    <div class="flex justify-between items-center mb-4">
+                        <span class="font-medium text-[#4A3729]">{{ language.name }}</span>
+                        <span class="px-3 py-1 bg-[#F0E6D2] text-[#4A3729] rounded-full text-sm">
+                            {{ language.proficiency }}
+                        </span>
+                    </div>
+                    {% endfor %}
+                </section>
+                {% endif %}
+
+                {% if references %}
+                <section>
+                    <h2 class="text-3xl font-light text-[#4A3729] mb-6 pb-4 border-b border-[#705A4A]">
+                        References
+                    </h2>
+                    {% for reference in references %}
+                    <div class="mb-6 bg-white shadow rounded-lg p-4 hover:shadow-md transition-shadow">
+                        <h3 class="font-semibold text-[#4A3729]">{{ reference.reference_name }}</h3>
+                        <p class="text-neutral-600">{{ reference.position }}</p>
+                        <p class="text-neutral-600">{{ reference.organization }}</p>
+                        <div class="mt-2 text-sm text-neutral-500">
+                            <p>{{ reference.email }}</p>
+                            <p>{{ reference.phone }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </section>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if custom_sections %}
+        <div class="mt-12">
+            {% for section in custom_sections %}
+            <section class="mb-5">
+                <h2 class="text-3xl font-light text-[#4A3729] mb-6 pb-4 border-b border-[#705A4A]">
+                    {{ section.section_name }}
+                </h2>
+                <div class="prose max-w-none text-neutral-700">
+                    {{ section.content|safe }}
+                </div>
+            </section>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </main>
+</div>

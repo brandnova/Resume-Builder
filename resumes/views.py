@@ -9,8 +9,13 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.template import Context, Template, loader
 from django.template.loader import render_to_string
 from django.urls import reverse
+from django.utils.html import strip_tags
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+
+from docx import Document
+from docx.shared import Inches, Pt, RGBColor
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 import json
 import os
@@ -37,6 +42,7 @@ from .models import (
     Education,
     Language,
     PDFDownload,
+    DOCXDownload,
     PersonalInfo,
     Certification,
     Project,
@@ -922,3 +928,259 @@ def generate_pdf(request, resume_slug):
         return render(request, 'resumes/pdf_download.html', context)
     
     return redirect('resume_preview', resume_slug=resume_slug)
+
+@login_required
+def initialize_docx_payment(request, resume_slug):
+    resume = get_object_or_404(Resume, slug=resume_slug, user=request.user)
+    site_settings = SiteSettings.objects.first()
+    
+    # Add redirect URL to callback
+    redirect_url = request.build_absolute_uri(reverse('resume_list'))
+
+    has_free_download = (
+        resume.template and 
+        UserTemplate.objects.filter(
+            user=request.user, 
+            template=resume.template
+        ).exists() and
+        not DOCXDownload.objects.filter(
+            user=request.user,
+            resume=resume,
+            template=resume.template,
+            is_free=True
+        ).exists()
+    )
+
+    if has_free_download:
+        return generate_docx(request, resume_slug)
+    
+    headers = {
+        "Authorization": f"Bearer {settings.PAYSTACK_SECRET_KEY}",
+        "Content-Type": "application/json"
+    }
+    
+    data = {
+        "email": request.user.email,
+        "amount": int(site_settings.docx_download_price * 100),
+        "currency": "NGN",
+        "callback_url": request.build_absolute_uri(
+            reverse('verify_docx_payment', kwargs={'resume_slug': resume_slug})
+        ),
+        "metadata": {
+            "resume_slug": resume_slug,
+            "user_id": request.user.id,
+            "type": "docx_download",
+            "redirect_url": redirect_url
+        }
+    }
+    
+    response = requests.post(
+        "https://api.paystack.co/transaction/initialize",
+        headers=headers,
+        json=data
+    )
+    
+    return JsonResponse({
+        "status": "success" if response.status_code == 200 else "error",
+        "data": response.json()["data"] if response.status_code == 200 else None
+    })
+
+@csrf_exempt
+def verify_docx_payment(request, resume_slug):
+    reference = request.GET.get('reference')
+    if not reference:
+        return JsonResponse({'status': 'error', 'message': 'No reference provided'})
+    
+    headers = {
+        "Authorization": f"Bearer {settings.PAYSTACK_SECRET_KEY}",
+        "Content-Type": "application/json"
+    }
+    
+    response = requests.get(
+        f"https://api.paystack.co/transaction/verify/{reference}",
+        headers=headers
+    )
+    
+    if response.status_code == 200 and response.json()['data']['status'] == 'success':
+        resume = get_object_or_404(Resume, slug=resume_slug)
+        
+        # For default template, set template to None
+        if not resume.template:
+            DOCXDownload.objects.create(
+                user=request.user,
+                resume=resume,
+                template=None,
+                payment_reference=reference,
+                is_free=False
+            )
+        else:
+            # For custom templates, use get_or_create
+            docx_download, created = DOCXDownload.objects.get_or_create(
+                user=request.user,
+                resume=resume,
+                template=resume.template,
+                defaults={
+                    'payment_reference': reference,
+                    'is_free': False
+                }
+            )
+            
+            # Update payment reference for existing downloads
+            if not created:
+                docx_download.payment_reference = reference
+                docx_download.save()
+        
+        return redirect(
+            f"{reverse('generate_docx', kwargs={'resume_slug': resume_slug})}?payment_verified=true&reference={reference}"
+        )
+    
+    return redirect('resume_preview', resume_slug=resume_slug)
+
+
+@login_required
+def generate_docx(request, resume_slug):
+    resume = get_object_or_404(Resume, slug=resume_slug, user=request.user)
+    
+    # Check for valid payment or free download
+    if not request.GET.get('payment_verified'):
+        # Check if user has existing download
+        existing_download = DOCXDownload.objects.filter(
+            user=request.user,
+            resume=resume,
+            template=resume.template
+        ).first()
+        
+        if not existing_download:
+            return redirect('resume_preview', resume_slug=resume_slug)
+    
+    doc = Document()
+    
+    # Document styling
+    style = doc.styles['Normal']
+    style.font.name = 'Calibri'
+    style.font.size = Pt(11)
+    
+    # Personal Info
+    if hasattr(resume, 'personalinfo'):
+        name_heading = doc.add_heading('', level=0)
+        name_run = name_heading.add_run(resume.personalinfo.full_name)
+        name_run.font.size = Pt(24)
+        name_run.font.bold = True
+        
+        # Contact Info
+        contact = doc.add_paragraph()
+        contact.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        contact_info = []
+        if resume.personalinfo.email:
+            contact_info.append(f"Email: {resume.personalinfo.email}")
+        if resume.personalinfo.phone:
+            contact_info.append(f"Phone: {resume.personalinfo.phone}")
+        if resume.personalinfo.location:
+            contact_info.append(f"Location: {resume.personalinfo.location}")
+        contact.add_run(' | '.join(contact_info))
+        
+        # Professional Links
+        if any([resume.personalinfo.linkedin_url, resume.personalinfo.github_url, resume.personalinfo.website_url]):
+            links = doc.add_paragraph()
+            links.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            if resume.personalinfo.linkedin_url:
+                links.add_run(f"LinkedIn: {resume.personalinfo.linkedin_url}\n")
+            if resume.personalinfo.github_url:
+                links.add_run(f"GitHub: {resume.personalinfo.github_url}\n")
+            if resume.personalinfo.website_url:
+                links.add_run(f"Website: {resume.personalinfo.website_url}")
+        
+        # Summary
+        if resume.personalinfo.summary:
+            doc.add_heading('Professional Summary', level=1)
+            doc.add_paragraph(resume.personalinfo.summary)
+    
+    # Work Experience
+    if resume.workexperience_set.exists():
+        doc.add_heading('Work Experience', level=1)
+        for exp in resume.workexperience_set.all():
+            p = doc.add_paragraph()
+            title = p.add_run(f"{exp.job_title} at {exp.company}")
+            title.bold = True
+            p.add_run(f"\nLocation: {exp.location}")
+            dates = f"\n{exp.start_date.strftime('%B %Y')} - "
+            dates += exp.end_date.strftime('%B %Y') if exp.end_date else "Present"
+            p.add_run(dates)
+            if exp.description:
+                desc = doc.add_paragraph(exp.description)
+                desc.style = 'List Bullet'
+    
+    # Education
+    if resume.education_set.exists():
+        doc.add_heading('Education', level=1)
+        for edu in resume.education_set.all():
+            p = doc.add_paragraph()
+            p.add_run(f"{edu.degree} in {edu.major}\n").bold = True
+            p.add_run(f"{edu.institution}, {edu.location}\n")
+            dates = f"{edu.start_date.strftime('%B %Y')} - "
+            dates += edu.end_date.strftime('%B %Y') if edu.end_date else "Present"
+            p.add_run(dates)
+    
+    # Skills
+    if resume.skill_set.exists():
+        doc.add_heading('Skills', level=1)
+        for skill in resume.skill_set.all():
+            p = doc.add_paragraph(style='List Bullet')
+            p.add_run(f"{skill.name} - {skill.level}")
+    
+    # Projects
+    if resume.project_set.exists():
+        doc.add_heading('Projects', level=1)
+        for project in resume.project_set.all():
+            p = doc.add_paragraph()
+            p.add_run(project.name).bold = True
+            if project.url:
+                p.add_run(f" - {project.url}")
+            dates = f"\n{project.start_date.strftime('%B %Y')} - "
+            dates += project.end_date.strftime('%B %Y') if project.end_date else "Present"
+            p.add_run(dates)
+            p.add_run(f"\nTechnologies: {project.technologies}")
+            if project.description:
+                desc = doc.add_paragraph(project.description)
+                desc.style = 'List Bullet'
+    
+    # Certifications
+    if resume.certification_set.exists():
+        doc.add_heading('Certifications', level=1)
+        for cert in resume.certification_set.all():
+            p = doc.add_paragraph()
+            p.add_run(f"{cert.name} - {cert.organization}").bold = True
+            p.add_run(f"\nObtained: {cert.date_obtained.strftime('%B %Y')}")
+            if cert.expiration_date:
+                p.add_run(f" | Expires: {cert.expiration_date.strftime('%B %Y')}")
+    
+    # Languages
+    if resume.language_set.exists():
+        doc.add_heading('Languages', level=1)
+        for lang in resume.language_set.all():
+            p = doc.add_paragraph(style='List Bullet')
+            p.add_run(f"{lang.name} - {lang.proficiency}")
+    
+    # References
+    if resume.references.exists():
+        doc.add_heading('References', level=1)
+        for ref in resume.references.all():
+            p = doc.add_paragraph()
+            p.add_run(f"{ref.reference_name}\n").bold = True
+            p.add_run(f"{ref.position} at {ref.organization}\n")
+            p.add_run(f"Email: {ref.email} | Phone: {ref.phone}")
+    
+    # Custom Sections
+    if resume.custom_sections.exists():
+        for section in resume.custom_sections.all():
+            doc.add_heading(section.section_name, level=1)
+            clean_content = strip_tags(section.content)
+            doc.add_paragraph(clean_content)
+    
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    )
+    response['Content-Disposition'] = f'attachment; filename="{resume.title}.docx"'
+    doc.save(response)
+    
+    return response
