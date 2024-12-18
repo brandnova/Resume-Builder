@@ -1,7 +1,14 @@
 {% extends "accounts/dashboard_base.html" %}
+{% load static %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 py-8">
+    {% if resume.template %}
+        <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4">
+            <p class="font-medium">Current Template: {{ resume.template.name }}</p>
+        </div>
+    {% endif %}
+
     <!-- Header Actions Bar -->
     <div class="bg-gradient-to-r from-blue-900 to-blue-600 rounded-2xl shadow-lg mb-8">
         <!-- Mobile View -->
@@ -34,7 +41,7 @@
                 <!-- Primary Actions -->
                 <div class="flex flex-col gap-2 text-white">
                     {% if has_free_download %}
-                        <a href="{% url 'download_pdf' resume.slug %}" class="btn-primary w-full text-white">
+                        <a href="{% url 'generate_pdf' resume.slug %}" class="btn-primary w-full text-white">
                             <i class="fas fa-download mr-2"></i>Download PDF (Free)
                         </a>
                     {% else %}
@@ -82,7 +89,7 @@
                 <!-- Primary Actions -->
                 <div class="flex gap-3">
                     {% if has_free_download %}
-                        <a href="{% url 'download_pdf' resume.slug %}" class="btn-primary text-white">
+                        <a href="{% url 'generate_pdf' resume.slug %}" class="btn-primary text-white">
                             <i class="fas fa-download mr-2"></i>Download PDF (Free)
                         </a>
                     {% else %}
@@ -134,7 +141,7 @@
     </div>
 
     <!-- Resume Content -->
-    <div class="bg-white shadow rounded-lg">
+    <div id="resume-content" class="bg-white shadow rounded-lg">
         {% if resume.template %}
             {{ rendered_template|safe }}
         {% else %}
@@ -158,7 +165,6 @@
 </style>
 
 <script>
-    // Add this line at the top of the script to get the resume slug
     const resumeSlug = '{{ resume.slug }}';
 
     function initializePDFPayment() {
@@ -195,5 +201,10 @@
                 });
         });
     });
+
+    window.resumeData = {
+        title: "{{ resume.title|escapejs }}",
+        slug: "{{ resume.slug }}"
+    };
 </script>
 {% endblock %}

@@ -155,8 +155,6 @@ PAYSTACK_SECRET_KEY = 'sk_test_e6bd21e28df1b493f12d70c2689cd15b5a08802b'
 
 PAYSTACK_PUBLIC_KEY = 'pk_test_2b07396de3182eeb036f47ca499c478dd33ec854'
 
-# PDF Generation Settings
-WKHTMLTOPDF_PATH = r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe'
 
 # Path to store uploaded images
 CKEDITOR_UPLOAD_PATH = "ckeditor/uploads/"

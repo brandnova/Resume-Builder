@@ -1,34 +1,53 @@
-from django.template.loader import render_to_string
-from weasyprint import HTML, CSS
+from datetime import datetime
 from django.conf import settings
-import os
-import hashlib
-import pdfkit
-import hmac
-import json
-import requests
-from django.http import JsonResponse, HttpResponse
-from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.views.decorators.http import require_http_methods
-from django.contrib import messages
+from django.core.serializers.json import DjangoJSONEncoder
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.template import Context, Template, loader
 from django.template.loader import render_to_string
-from django.conf import settings
-from django.views.decorators.csrf import csrf_exempt
 from django.urls import reverse
-from django.template import Template, Context
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+
+import json
+import os
+import requests
+import tempfile
+import threading
 
 from core.models import SiteSettings
 
-from .models import (
-    PDFDownload, Resume, PersonalInfo, ResumeTemplate, UserTemplate, WorkExperience, Education, 
-    Skill, Project, Certification, Language, Reference, CustomSection
-)
 from .forms import (
-    CertificationForm, CustomSectionForm, LanguageForm, ReferenceForm, ResumeForm, PersonalInfoForm, WorkExperienceForm, 
-    EducationForm, SkillForm, ProjectForm
+    CertificationForm,
+    CustomSectionForm,
+    EducationForm,
+    LanguageForm,
+    PersonalInfoForm,
+    ProjectForm,
+    ReferenceForm,
+    ResumeForm,
+    SkillForm,
+    WorkExperienceForm,
 )
+from .models import (
+    CustomSection,
+    Education,
+    Language,
+    PDFDownload,
+    PersonalInfo,
+    Certification,
+    Project,
+    Reference,
+    Resume,
+    ResumeTemplate,
+    Skill,
+    UserTemplate,
+    WorkExperience,
+)
+from weasyprint import CSS, HTML
 
 
 @login_required
@@ -400,48 +419,12 @@ def delete_custom_section(request, resume_slug, custom_section_id):
         'resume': resume
     })
 
+@login_required
 def resume_preview(request, resume_slug):
     resume = get_object_or_404(Resume, slug=resume_slug, user=request.user)
-    domain = request.get_host()
-
-    # Fetch all related data
-    personal_info = resume.personalinfo if hasattr(resume, 'personalinfo') else None
-    work_experiences = resume.workexperience_set.all()
-    education_entries = resume.education_set.all()
-    skills = resume.skill_set.all()
-    projects = resume.project_set.all()
-    certifications = resume.certification_set.all()
-    languages = resume.language_set.all()
-    references = resume.references.all()
-    custom_sections = resume.custom_sections.all()
-
-    # Mark resume as complete when preview is accessed
-    resume.is_complete = True
-    resume.save()
-
-    # Create context dictionary
-    context = {
-        'resume': resume,
-        'personal_info': personal_info,
-        'work_experiences': work_experiences,
-        'education_entries': education_entries,
-        'skills': skills,
-        'projects': projects,
-        'certifications': certifications,
-        'languages': languages,
-        'references': references,
-        'custom_sections': custom_sections,
-        'section': 'preview',
-        'domain': domain,
-    }
-    
-    if resume.template:
-        # Parse and render the dynamic template
-        template_content = Template(resume.template.html_content)
-        rendered_content = template_content.render(Context(context))
-        context['rendered_template'] = rendered_content
-        
-    return render(request, 'resumes/preview.html', context)
+    context = get_resume_context(resume)
+    context['domain'] = request.get_host()
+    return render(request, 'resumes/preview_resume.html', context)
 
 def public_resume_view(request, slug):
     resume = get_object_or_404(Resume, slug=slug, is_complete=True)
@@ -777,11 +760,21 @@ def preview_template(request, template_id):
     return render(request, 'resumes/preview_template.html', context)
 
 
+class ResumeJSONEncoder(DjangoJSONEncoder):
+    def default(self, obj):
+        if hasattr(obj, '__dict__'):
+            return {
+                key: value for key, value in obj.__dict__.items()
+                if not key.startswith('_') and not callable(value)
+            }
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        return super().default(obj)
+
 @login_required
 def download_resume_pdf(request, resume_slug):
     resume = get_object_or_404(Resume, slug=resume_slug, user=request.user)
-    
-    # Check if user has free download from template purchase
+
     has_free_download = (
         resume.template and 
         UserTemplate.objects.filter(
@@ -796,15 +789,56 @@ def download_resume_pdf(request, resume_slug):
         ).exists()
     )
     
-    if has_free_download:
-        return generate_pdf(request, resume, is_free=True)
+    if has_free_download or request.GET.get('payment_verified'):
+        # Get the rendered template content
+        context = {
+            'resume': resume,
+            'personal_info': resume.personalinfo if hasattr(resume, 'personalinfo') else None,
+            'work_experiences': resume.workexperience_set.all(),
+            'education_entries': resume.education_set.all(),
+            'skills': resume.skill_set.all(),
+            'projects': resume.project_set.all(),
+            'certifications': resume.certification_set.all(),
+            'languages': resume.language_set.all(),
+            'references': resume.references.all(),
+            'custom_sections': resume.custom_sections.all(),
+        }
+        
+        if resume.template:
+            template_content = Template(resume.template.html_content)
+            rendered_content = template_content.render(Context(context))
+        else:
+            rendered_content = render_to_string('resumes/default_template.html', context)
+            
+        return render(request, 'resumes/pdf_download.html', {
+            'resume': resume,
+            'rendered_content': rendered_content
+        })
     
-    # Check if payment is required
-    if request.GET.get('payment_verified'):
-        return generate_pdf(request, resume)
-    
-    # Initialize payment for PDF download
     return initialize_pdf_payment(request, resume)
+
+
+
+def model_to_dict(instance):
+    """Convert model instance to dictionary with proper handling of special fields"""
+    data = {}
+    for field in instance._meta.fields:
+        value = getattr(instance, field.name)
+        if isinstance(value, datetime):
+            data[field.name] = value.isoformat()
+        elif hasattr(value, '__dict__'):
+            data[field.name] = str(value)
+        else:
+            data[field.name] = value
+    return data
+
+def serialize_model(instance):
+    """Helper function to serialize model instances"""
+    if not instance:
+        return None
+    return {field.name: getattr(instance, field.name) 
+            for field in instance._meta.fields}
+
 
 
 def get_resume_context(resume):
@@ -823,85 +857,9 @@ def get_resume_context(resume):
     
     if resume.template:
         template_content = Template(resume.template.html_content)
-        rendered_content = template_content.render(Context(context))
-        context['rendered_template'] = rendered_content
+        context['rendered_template'] = template_content.render(Context(context))
     
     return context
-
-
-def generate_pdf(resume, request):
-    # Get the template's CSS file path
-    template_css = None
-    if resume.template and resume.template.css_file:
-        template_css = resume.template.css_file.path
-
-    # Base CSS for consistent styling
-    base_css = '''
-        @page {
-            size: letter;
-            margin: 0;
-        }
-        
-        body {
-            font-family: 'Arial', sans-serif;
-            margin: 0;
-            padding: 0;
-        }
-        
-        img {
-            max-width: 100%;
-            height: auto;
-        }
-        
-        .resume-container {
-            padding: 40px;
-        }
-    '''
-
-    # Create context with all resume data
-    context = {
-        'resume': resume,
-        'personal_info': resume.personalinfo if hasattr(resume, 'personalinfo') else None,
-        'work_experiences': resume.workexperience_set.all(),
-        'education_entries': resume.education_set.all(),
-        'skills': resume.skill_set.all(),
-        'projects': resume.project_set.all(),
-        'certifications': resume.certification_set.all(),
-        'languages': resume.language_set.all(),
-        'references': resume.references.all(),
-        'custom_sections': resume.custom_sections.all(),
-        'pdf_mode': True,  # Flag to handle PDF-specific styling
-        'request': request,  # Add request to context for URL handling
-        'domain': request.get_host(),
-    }
-
-    # Render the HTML content using the same template as the preview
-    if resume.template:
-        template_content = Template(resume.template.html_content)
-        html_string = template_content.render(Context(context))
-    else:
-        html_string = render_to_string('resumes/pdf_template.html', context)
-
-    # Collect all stylesheets
-    stylesheets = [CSS(string=base_css)]
-    
-    # Add template-specific CSS if it exists
-    if template_css and os.path.exists(template_css):
-        stylesheets.append(CSS(filename=template_css))
-    
-    # Add any additional static CSS files
-    static_css_path = os.path.join(settings.STATIC_ROOT, 'css/resume-pdf.css')
-    if os.path.exists(static_css_path):
-        stylesheets.append(CSS(filename=static_css_path))
-
-    # Generate PDF
-    pdf = HTML(string=html_string, base_url=request.build_absolute_uri('/')).write_pdf(
-        stylesheets=stylesheets,
-        presentational_hints=True
-    )
-
-    return pdf
-
 
 
 @login_required
@@ -909,18 +867,14 @@ def initialize_pdf_payment(request, resume_slug):
     resume = get_object_or_404(Resume, slug=resume_slug, user=request.user)
     site_settings = SiteSettings.objects.first()
     
-    # Initialize payment with Paystack
-    paystack_secret = settings.PAYSTACK_SECRET_KEY
-    url = "https://api.paystack.co/transaction/initialize"
-    
     headers = {
-        "Authorization": f"Bearer {paystack_secret}",
+        "Authorization": f"Bearer {settings.PAYSTACK_SECRET_KEY}",
         "Content-Type": "application/json"
     }
     
     data = {
         "email": request.user.email,
-        "amount": int(site_settings.pdf_download_price * 100),  # Convert to kobo
+        "amount": int(site_settings.pdf_download_price * 100),
         "currency": "NGN",
         "callback_url": request.build_absolute_uri(
             reverse('pdf_payment_verify', kwargs={'resume_slug': resume_slug})
@@ -932,52 +886,39 @@ def initialize_pdf_payment(request, resume_slug):
         }
     }
     
-    response = requests.post(url, headers=headers, json=data)
-    
-    if response.status_code == 200:
-        return JsonResponse({
-            "status": "success",
-            "data": response.json()["data"]
-        })
+    response = requests.post("https://api.paystack.co/transaction/initialize", 
+                           headers=headers, json=data)
     
     return JsonResponse({
-        "status": "error",
-        "message": "Failed to initialize payment"
-    }, status=400)
+        "status": "success" if response.status_code == 200 else "error",
+        "data": response.json()["data"] if response.status_code == 200 else None
+    })
 
 @csrf_exempt
 def verify_pdf_payment(request, resume_slug):
-    if request.method == 'POST':
-        payload = json.loads(request.body)
-        reference = payload.get('reference')
-    else:
-        reference = request.GET.get('reference')
-    
+    reference = request.GET.get('reference')
     if not reference:
-        return JsonResponse({'status': 'error', 'message': 'No reference provided'})
-    
-    # Verify the payment with Paystack
-    paystack_secret = settings.PAYSTACK_SECRET_KEY
-    url = f"https://api.paystack.co/transaction/verify/{reference}"
+        return redirect(f"{reverse('resume_preview', kwargs={'resume_slug': resume_slug})}?payment_status=failed")
     
     headers = {
-        "Authorization": f"Bearer {paystack_secret}",
+        "Authorization": f"Bearer {settings.PAYSTACK_SECRET_KEY}",
         "Content-Type": "application/json"
     }
     
-    response = requests.get(url, headers=headers)
+    response = requests.get(f"https://api.paystack.co/transaction/verify/{reference}", 
+                          headers=headers)
     
-    if response.status_code == 200:
-        response_data = response.json()
-        if response_data['data']['status'] == 'success':
-            # Get metadata from the transaction
-            metadata = response_data['data']['metadata']
-            resume_slug = metadata.get('resume_slug')
-            
-            # Redirect to PDF download with verification
-            return redirect(
-                f"{reverse('download_pdf', kwargs={'resume_slug': resume_slug})}?payment_verified=true&reference={reference}"
-            )
+    if response.status_code == 200 and response.json()['data']['status'] == 'success':
+        return redirect(f"{reverse('generate_pdf', kwargs={'resume_slug': resume_slug})}?payment_verified=true&reference={reference}")
     
-    # Redirect with error message if verification fails
     return redirect(f"{reverse('resume_preview', kwargs={'resume_slug': resume_slug})}?payment_status=failed")
+
+@login_required
+def generate_pdf(request, resume_slug):
+    resume = get_object_or_404(Resume, slug=resume_slug, user=request.user)
+    
+    if request.GET.get('payment_verified'):
+        context = get_resume_context(resume)
+        return render(request, 'resumes/pdf_download.html', context)
+    
+    return redirect('resume_preview', resume_slug=resume_slug)

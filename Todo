@@ -4,5 +4,9 @@ Ads
 
 Profle update page organized.
 
+Render site settings content to pages
+
+Render proper content to dashboard
+
 
 I want you to expand and optimize these Django project page templates. Give it an ultramodern design and UI and add interactivity to the page. You can use JavaScript-based frameworks CDN like React or Alpine to add interactive elements to the page. It is for a digital resume builder app I'm building with django so I want the page to be sleak andorganized with simple but powerful features. I'll provide other templates as well so you can help do the same with them. Ensure the sidebar is collapsible on both mobile and desktop screens and always return the complete code without leaving out any part. 

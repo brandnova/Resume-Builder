@@ -59,6 +59,7 @@ urlpatterns = [
      path('verify-payment/<str:reference>/', views.verify_payment, name='verify_payment'),
 
      # PDF Management Routes
+     path('resumes/<str:resume_slug>/generate-pdf/', views.generate_pdf, name='generate_pdf'),
      path('<slug:resume_slug>/download-pdf/', views.download_resume_pdf, name='download_pdf'),
      path('<slug:resume_slug>/initialize-pdf-payment/', views.initialize_pdf_payment, name='initialize_pdf_payment'),
      path('<slug:resume_slug>/verify-pdf-payment/', views.verify_pdf_payment, name='pdf_payment_verify'),

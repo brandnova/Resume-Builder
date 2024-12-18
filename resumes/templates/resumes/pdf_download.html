@@ -1,0 +1,25 @@
+{% extends "resumes/base.html" %}
+
+{% load static %}
+
+{% block content %}
+<div id="pdf-generator" class="fixed inset-0 z-50"></div>
+<div id="resume-content" class="hidden">
+    {% if resume.template %}
+        {{ rendered_template|safe }}
+    {% else %}
+        {% include "resumes/default_template.html" %}
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    window.resumeData = {
+        title: "{{ resume.title|escapejs }}",
+        slug: "{{ resume.slug }}",
+        paymentVerified: true
+    };
+</script>
+<script type="text/babel" src="{% static 'assets/js/pdf_generator.jsx' %}"></script>
+{% endblock %}
