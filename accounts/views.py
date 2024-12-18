@@ -1,10 +1,11 @@
+from itertools import chain
 from venv import logger
 from django.forms import ValidationError
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, authenticate, logout
-
+from django.db.models import Count
 from accounts.models import UserProfile
-from resumes.models import Resume
+from resumes.models import DOCXDownload, PDFDownload, Resume
 from .forms import CustomUserCreationForm, UserProfileUpdateForm, CustomAuthenticationForm, CustomPasswordResetForm, CustomPasswordChangeForm
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -105,20 +106,96 @@ def change_password(request):
 
 @login_required
 def dashboard(request):
-    resumes = Resume.objects.filter(user=request.user).order_by('-created_at')
+    user = request.user
+    profile = UserProfile.objects.get(user=user)
+    domain = request.get_host()
+    
+    # Resume statistics
+    resumes = Resume.objects.filter(user=user).order_by('-created_at')
     completed_resumes_count = resumes.filter(is_complete=True).count()
+    
+    # Activity metrics
+    recent_activities = []
+    
+    # Resume updates in last 24 hours
+    last_24h_updates = resumes.filter(
+        updated_at__gte=timezone.now() - timezone.timedelta(days=1)
+    ).count()
+    
+    # Monthly growth
+    last_month = timezone.now() - timezone.timedelta(days=30)
+    current_month_resumes = resumes.filter(created_at__gte=last_month).count()
+    previous_month_resumes = resumes.filter(
+        created_at__gte=last_month - timezone.timedelta(days=30),
+        created_at__lt=last_month
+    ).count()
+    
+    monthly_growth = 0
+    if previous_month_resumes > 0:
+        monthly_growth = ((current_month_resumes - previous_month_resumes) / previous_month_resumes) * 100
+    
+    # Template usage statistics
+    template_usage = list(Resume.objects.filter(user=user)
+    .values('template__name')
+    .annotate(count=Count('id')))
 
-    user = request.user  
-    profile = UserProfile.objects.get(user=user) 
-    # Get the domain name of the current site
-    domain = request.get_host() 
+    total_resumes = sum(t['count'] for t in template_usage)
+    colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6']
 
-    return render(request, 'accounts/dashboard.html', {
+    for i, template in enumerate(template_usage):
+        template['percentage'] = (template['count'] / total_resumes * 100)
+        template['color'] = colors[i % len(colors)]
+    
+    # Download statistics
+    pdf_downloads = PDFDownload.objects.filter(user=user).count()
+    docx_downloads = DOCXDownload.objects.filter(user=user).count()
+    
+    # Recent activities tracking
+    activities = []
+    
+    # Resume updates
+    for resume in resumes[:5]:
+        activities.append({
+            'type': 'update',
+            'title': resume.title,
+            'timestamp': resume.updated_at,
+            'icon': 'fa-pencil-alt',
+            'color': 'blue'
+        })
+    
+    # Recent downloads
+    recent_downloads = list(chain(
+        PDFDownload.objects.filter(user=user).order_by('-created_at')[:3],
+        DOCXDownload.objects.filter(user=user).order_by('-created_at')[:3]
+    ))
+    for download in sorted(recent_downloads, key=lambda x: x.created_at, reverse=True)[:5]:
+        activities.append({
+            'type': 'download',
+            'title': download.resume.title,
+            'timestamp': download.created_at,
+            'icon': 'fa-download',
+            'color': 'green'
+        })
+    
+    # Sort activities by timestamp
+    activities.sort(key=lambda x: x['timestamp'], reverse=True)
+    
+    context = {
         'resumes': resumes,
         'completed_resumes_count': completed_resumes_count,
-        'domain': domain, 
-        'profile': profile, 
-    })
+        'domain': domain,
+        'profile': profile,
+        'last_24h_updates': last_24h_updates,
+        'monthly_growth': monthly_growth,
+        'template_usage': template_usage,
+        'pdf_downloads': pdf_downloads,
+        'docx_downloads': docx_downloads,
+        'activities': activities[:5],
+        'completion_rate': (completed_resumes_count / resumes.count() * 100) if resumes.exists() else 0,
+    }
+    
+    return render(request, 'accounts/dashboard.html', context)
+
 
 
 @login_required

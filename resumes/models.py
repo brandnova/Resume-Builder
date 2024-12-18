@@ -116,7 +116,19 @@ class CustomSection(models.Model):
 class PDFDownload(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     resume = models.ForeignKey(Resume, on_delete=models.CASCADE)
-    template = models.ForeignKey(ResumeTemplate, on_delete=models.CASCADE)
+    template = models.ForeignKey(ResumeTemplate, on_delete=models.CASCADE, null=True, blank=True)
     payment_reference = models.CharField(max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
     is_free = models.BooleanField(default=False)  # For template purchase bonus
+
+
+class DOCXDownload(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    resume = models.ForeignKey(Resume, on_delete=models.CASCADE)
+    template = models.ForeignKey(ResumeTemplate, on_delete=models.CASCADE, null=True, blank=True)
+    payment_reference = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_free = models.BooleanField(default=False)  # For template purchase bonus
+
+    class Meta:
+        unique_together = ['user', 'resume', 'template']

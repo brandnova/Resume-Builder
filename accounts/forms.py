@@ -69,30 +69,55 @@ class CustomPasswordChangeForm(PasswordChangeForm):
 
 
 class UserProfileUpdateForm(forms.ModelForm):
-    # User model fields
+    # Personal Information Section
+    first_name = forms.CharField(
+        required=True,
+        widget=forms.TextInput(attrs={
+            'class': 'w-full pl-10 py-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500',
+            'placeholder': 'Enter your first name'
+        })
+    )
+    
+    last_name = forms.CharField(
+        required=True,
+        widget=forms.TextInput(attrs={
+            'class': 'w-full pl-10 py-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500',
+            'placeholder': 'Enter your last name'
+        })
+    )
+    
+    username = forms.CharField(
+        required=True,
+        widget=forms.TextInput(attrs={
+            'class': 'w-full pl-10 py-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500',
+            'placeholder': 'Choose a username'
+        })
+    )
+    
     email = forms.EmailField(
-        required=True, 
+        required=True,
         widget=forms.EmailInput(attrs={
-            'class': 'w-full px-3 py-2 border rounded-md',
+            'class': 'w-full pl-10 py-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500',
             'placeholder': 'Enter your email'
         })
     )
-
-    # UserProfile model fields
+    
+    # Contact Information Section
     phone_number = forms.CharField(
         required=False,
         max_length=15,
         widget=forms.TextInput(attrs={
-            'class': 'w-full px-3 py-2 border rounded-md',
+            'class': 'w-full pl-10 py-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500',
             'placeholder': 'Enter your phone number'
         })
     )
     
+    # Profile Information Section
     bio = forms.CharField(
         required=False,
         max_length=500,
         widget=forms.Textarea(attrs={
-            'class': 'w-full px-3 py-2 border rounded-md',
+            'class': 'w-full pl-10 py-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500',
             'placeholder': 'Write a brief professional bio',
             'rows': 4
         })
@@ -102,13 +127,14 @@ class UserProfileUpdateForm(forms.ModelForm):
         required=False,
         widget=forms.FileInput(attrs={
             'class': 'hidden',
-            'accept': 'image/*'
+            'accept': 'image/*',
+            'x-ref': 'profilePicture'
         })
     )
 
     class Meta:
         model = User
-        fields = ("username", "email", "first_name", "last_name")
+        fields = ("first_name", "last_name", "username", "email")
         widgets = {
             'username': forms.TextInput(attrs={
                 'class': 'w-full px-3 py-2 border rounded-md',

@@ -52,7 +52,7 @@
     </header>
 
     <!-- Main Content -->
-    <main class="max-w-6xl mx-auto px-6 pt-12">
+    <main class="max-w-6xl mx-auto px-6 py-12">
         {% if personal_info.summary %}
         <section class="mb-12">
             <h2 class="text-3xl font-serif text-slate-800 mb-6 pb-2 border-b-2 border-slate-800">Professional Summary</h2>
@@ -212,7 +212,7 @@
         {% if custom_sections %}
         <div class="mt-12">
             {% for section in custom_sections %}
-            <section class="mb-5">
+            <section class="mb-3">
                 <h2 class="text-3xl font-serif text-slate-800 mb-6 pb-2 border-b-2 border-slate-800">
                     {{ section.section_name }}
                 </h2>

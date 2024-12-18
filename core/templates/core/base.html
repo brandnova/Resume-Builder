@@ -3,103 +3,207 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Resume Builder{% endblock %}</title>
+    <title>{% block title %}{{ site_settings.site_name }}{% endblock %}</title>
+    
+    <!-- Enhanced Meta Tags -->
+    <meta name="description" content="{{ site_settings.meta_description }}">
+    <meta name="keywords" content="{{ site_settings.meta_keywords }}">
+    
+    <!-- Modern UI Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+    
+    <!-- Intersection Observer for Animations -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('animate__animated', 'animate__fadeInUp');
+                    }
+                });
+            });
+
+            document.querySelectorAll('.animate-on-scroll').forEach((el) => observer.observe(el));
+        });
+    </script>
+
+    <style>
+        [x-cloak] { display: none !important; }
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+        }
+        
+        .hover-scale {
+            transition: transform 0.3s ease;
+        }
+        
+        .hover-scale:hover {
+            transform: scale(1.02);
+        }
+    </style>
 </head>
+
 <body class="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen flex flex-col">
-    <header x-data="{ isOpen: false }" class="bg-white shadow-sm sticky top-0 z-50">
+    <header x-data="{ isOpen: false }" class="glass-effect sticky top-0 z-50">
         <nav class="container mx-auto px-4 py-4">
             <div class="flex justify-between items-center">
                 <a href="{% url 'home' %}" class="flex items-center space-x-2">
                     <span class="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
-                        Resume Builder
+                        {{ site_settings.site_name }}
                     </span>
                 </a>
 
-                <!-- Mobile menu button -->
-                <button @click="isOpen = !isOpen" class="md:hidden">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path x-show="!isOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-                        <path x-show="isOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
+                <!-- Enhanced Mobile Menu Button -->
+                <button @click="isOpen = !isOpen" class="md:hidden relative">
+                    <div class="w-6 h-6 flex items-center justify-center">
+                        <div class="w-full h-0.5 bg-gray-600 transition-all duration-300"
+                             :class="{ 'rotate-45 translate-y-1.5': isOpen }"></div>
+                        <div class="w-full h-0.5 bg-gray-600 absolute transition-all duration-300"
+                             :class="{ '-rotate-45 -translate-y-1.5': isOpen }"></div>
+                    </div>
                 </button>
 
-                <!-- Desktop menu -->
+                <!-- Enhanced Desktop Menu -->
                 <div class="hidden md:flex space-x-6">
                     {% if user.is_authenticated %}
-                        <a href="{% url 'dashboard' %}" class="text-gray-700 hover:text-blue-600 font-medium transition-colors">Dashboard</a>
-                        <a href="{% url 'logout' %}" class="text-gray-700 hover:text-blue-600 font-medium transition-colors">Logout</a>
+                        <a href="{% url 'dashboard' %}" class="nav-link flex items-center">
+                            <i class="fas fa-columns mr-2"></i>Dashboard
+                        </a>
+                        <a href="{% url 'logout' %}" class="nav-link flex items-center">
+                            <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                        </a>
                     {% else %}
-                        <a href="{% url 'login' %}" class="text-gray-700 hover:text-blue-600 font-medium transition-colors">Login</a>
-                        <a href="{% url 'register' %}" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg transition-colors">
-                            Get Started
+                        <a href="{% url 'login' %}" class="nav-link flex items-center">
+                            <i class="fas fa-sign-in-alt mr-2"></i>Login
+                        </a>
+                        <a href="{% url 'register' %}" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg transition-all duration-300 transform hover:scale-105 flex items-center">
+                            <i class="fas fa-user-plus mr-2"></i>Get Started
                         </a>
                     {% endif %}
                 </div>
             </div>
 
-            <!-- Mobile menu -->
-            <div x-show="isOpen" x-transition class="md:hidden mt-4">
+            <!-- Enhanced Mobile Menu -->
+            <div x-show="isOpen" 
+                 x-transition:enter="transition ease-out duration-200"
+                 x-transition:enter-start="opacity-0 -translate-y-4"
+                 x-transition:enter-end="opacity-100 translate-y-0"
+                 x-transition:leave="transition ease-in duration-150"
+                 x-transition:leave-start="opacity-100 translate-y-0"
+                 x-transition:leave-end="opacity-0 -translate-y-4"
+                 class="md:hidden mt-4">
                 {% if user.is_authenticated %}
-                    <a href="{% url 'dashboard' %}" class="block py-2 text-gray-700 hover:text-blue-600">Dashboard</a>
-                    <a href="{% url 'logout' %}" class="block py-2 text-gray-700 hover:text-blue-600">Logout</a>
+                    <a href="{% url 'dashboard' %}" class="block py-2 text-gray-700 hover:text-blue-600 transition-colors">
+                        <i class="fas fa-columns mr-2"></i>Dashboard
+                    </a>
+                    <a href="{% url 'logout' %}" class="block py-2 text-gray-700 hover:text-blue-600 transition-colors">
+                        <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                    </a>
                 {% else %}
-                    <a href="{% url 'login' %}" class="block py-2 text-gray-700 hover:text-blue-600">Login</a>
-                    <a href="{% url 'register' %}" class="block py-2 text-gray-700 hover:text-blue-600">Register</a>
+                    <a href="{% url 'login' %}" class="block py-2 text-gray-700 hover:text-blue-600 transition-colors">
+                        <i class="fas fa-sign-in-alt mr-2"></i>Login
+                    </a>
+                    <a href="{% url 'register' %}" class="block py-2 text-gray-700 hover:text-blue-600 transition-colors">
+                        <i class="fas fa-user-plus mr-2"></i>Register
+                    </a>
                 {% endif %}
             </div>
         </nav>
     </header>
 
-    <main class="container mx-auto px-4 py-8 flex-grow">
-        {% if messages %}
-            <div x-data="{ show: true }" x-show="show" class="fixed top-4 right-4 z-50">
-                {% for message in messages %}
-                    <div class="bg-white border-l-4 border-blue-500 text-blue-700 p-4 mb-4 rounded-lg shadow-lg animate__animated animate__fadeInRight">
-                        <div class="flex justify-between items-center">
-                            <p>{{ message }}</p>
-                            <button @click="show = false" class="text-blue-700 hover:text-blue-900">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                </svg>
-                            </button>
-                        </div>
+    <!-- Enhanced Messages -->
+    {% if messages %}
+        <div x-data="{ show: true }" 
+             x-show="show" 
+             class="fixed top-4 right-4 z-50 space-y-4">
+            {% for message in messages %}
+                <div class="glass-effect p-4 rounded-lg shadow-lg animate__animated animate__fadeInRight flex items-center">
+                    <div class="mr-3">
+                        {% if message.tags == 'success' %}
+                            <i class="fas fa-check-circle text-green-500 text-xl"></i>
+                        {% elif message.tags == 'error' %}
+                            <i class="fas fa-exclamation-circle text-red-500 text-xl"></i>
+                        {% else %}
+                            <i class="fas fa-info-circle text-blue-500 text-xl"></i>
+                        {% endif %}
                     </div>
-                {% endfor %}
-            </div>
-        {% endif %}
+                    <p class="flex-grow">{{ message }}</p>
+                    <button @click="show = false" class="ml-3 text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
 
+    <main class="container mx-auto px-4 py-8 flex-grow">
         {% block content %}{% endblock %}
     </main>
 
+    <!-- Enhanced Footer -->
     <footer class="bg-gray-900 text-white py-12">
         <div class="container mx-auto px-4">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div>
-                    <h3 class="text-xl font-bold mb-4">Resume Builder</h3>
-                    <p class="text-gray-400">Create professional resumes in minutes with our easy-to-use builder.</p>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div class="col-span-1 md:col-span-2">
+                    <h3 class="text-xl font-bold mb-4">{{ site_settings.site_name }}</h3>
+                    <p class="text-gray-400">{{ site_settings.site_description }}</p>
+                    <div class="mt-6 flex space-x-4">
+                        {% if site_settings.facebook_url %}
+                            <a href="{{ site_settings.facebook_url }}" class="text-gray-400 hover:text-white transition-colors">
+                                <i class="fab fa-facebook-f"></i>
+                            </a>
+                        {% endif %}
+                        {% if site_settings.twitter_url %}
+                            <a href="{{ site_settings.twitter_url }}" class="text-gray-400 hover:text-white transition-colors">
+                                <i class="fab fa-twitter"></i>
+                            </a>
+                        {% endif %}
+                        {% if site_settings.linkedin_url %}
+                            <a href="{{ site_settings.linkedin_url }}" class="text-gray-400 hover:text-white transition-colors">
+                                <i class="fab fa-linkedin-in"></i>
+                            </a>
+                        {% endif %}
+                    </div>
                 </div>
+
                 <div>
                     <h3 class="text-xl font-bold mb-4">Quick Links</h3>
                     <ul class="space-y-2">
-                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Templates</a></li>
-                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Pricing</a></li>
-                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors">About Us</a></li>
+                        <li><a href="#templates" class="text-gray-400 hover:text-white transition-colors">Templates</a></li>
+                        <li><a href="#pricing" class="text-gray-400 hover:text-white transition-colors">Pricing</a></li>
+                        <li><a href="#about" class="text-gray-400 hover:text-white transition-colors">About Us</a></li>
                     </ul>
                 </div>
+
                 <div>
                     <h3 class="text-xl font-bold mb-4">Contact</h3>
                     <ul class="space-y-2 text-gray-400">
-                        <li>support@resumebuilder.com</li>
-                        <li>1-800-RESUME</li>
+                        <li>
+                            <i class="fas fa-envelope mr-2"></i>
+                            {{ site_settings.contact_email }}
+                        </li>
+                        <li>
+                            <i class="fas fa-phone mr-2"></i>
+                            {{ site_settings.contact_phone }}
+                        </li>
+                        {% if site_settings.address %}
+                            <li>
+                                <i class="fas fa-map-marker-alt mr-2"></i>
+                                {{ site_settings.address }}
+                            </li>
+                        {% endif %}
                     </ul>
                 </div>
             </div>
+
             <div class="mt-8 pt-8 border-t border-gray-800 text-center text-gray-400">
-                <p>&copy; {% now "Y" %} Resume Builder. All rights reserved.</p>
+                <p>&copy; {% now "Y" %} {{ site_settings.site_name }}. All rights reserved.</p>
             </div>
         </div>
     </footer>
