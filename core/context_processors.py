@@ -4,7 +4,8 @@ from resumes.models import ResumeTemplate
 def site_settings(request):
     try:
         settings = SiteSettings.objects.first()
-        templates = ResumeTemplate.objects.filter(is_active=True)[:6]
+        # Fetch random active templates
+        templates = ResumeTemplate.objects.filter(is_active=True).order_by('?')
         return {
             'site_settings': settings,
             'featured_templates': templates
