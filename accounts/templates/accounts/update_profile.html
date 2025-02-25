@@ -1,0 +1,203 @@
+{% extends 'accounts/dashboard_base.html' %}
+
+{% block title %}Update Profile - Resume Builder{% endblock %}
+{% load form_tags %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-8">
+    <div class="bg-white rounded-2xl shadow-xl p-6 md:p-8 hover-scale">
+        <!-- Alert Messages -->
+        {% if messages %}
+        <div class="mb-6 space-y-2">
+            {% for message in messages %}
+            <div class="p-4 rounded-lg {% if message.tags == 'success' %}bg-green-100 text-green-800{% elif message.tags == 'error' %}bg-red-100 text-red-800{% endif %} flex items-center">
+                <i class="fas {% if message.tags == 'success' %}fa-check-circle{% else %}fa-exclamation-circle{% endif %} mr-3"></i>
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Header Section -->
+        <div class="flex items-center justify-between mb-8 pb-4 border-b">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-900">Profile Settings</h2>
+                <p class="text-gray-500 mt-1">Manage your account information and preferences</p>
+            </div>
+        </div>
+
+        <!-- Profile Form -->
+        <form method="post" enctype="multipart/form-data" class="space-y-8" 
+              x-data="{ 
+                  loading: false, 
+                  photoPreview: '{% if user.userprofile.profile_picture %}{{ user.userprofile.profile_picture.url|default:"" }}{% else %}https://placehold.co/40x400{% endif %}',
+                  handleFileSelect(event) {
+                      const file = event.target.files[0];
+                      if (file) {
+                          this.photoPreview = URL.createObjectURL(file);
+                      }
+                  }
+              }" 
+              @submit="loading = true">
+            {% csrf_token %}
+
+            <!-- Profile Photo Section -->
+            <div class="flex flex-col md:flex-row items-center md:items-start gap-6 p-6 bg-gray-50 rounded-xl">
+                <div class="relative">
+                    <div class="w-32 h-32 rounded-full overflow-hidden bg-gray-100">
+                        <template x-if="photoPreview">
+                            <img :src="photoPreview" class="w-full h-full object-cover">
+                        </template>
+                        <template x-if="!photoPreview">
+                            <div class="w-full h-full flex items-center justify-center">
+                                <i class="fas fa-user text-4xl text-gray-400"></i>
+                            </div>
+                        </template>
+                    </div>
+                    <label class="absolute bottom-0 right-0 bg-blue-600 rounded-full p-3 cursor-pointer hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-camera text-white"></i>
+                        {{ form.profile_picture }}
+                    </label>
+                </div>
+                <div class="text-center md:text-left">
+                    <h3 class="text-lg font-medium text-gray-900">Profile Photo</h3>
+                    <p class="text-sm text-gray-500 mt-1">Upload a professional profile picture</p>
+                    <p class="text-xs text-gray-400 mt-2">Recommended: Square image, at least 400x400px</p>
+                </div>
+            </div>
+
+            <!-- Form Sections -->
+            <div class="space-y-8">
+                <!-- Personal Information -->
+                <div class="space-y-4">
+                    <h3 class="text-lg font-medium text-gray-900 border-b pb-2">Personal Information</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- First Name -->
+                        <div class="space-y-2">
+                            <label for="{{ form.first_name.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                First Name
+                            </label>
+                            <div class="relative rounded-lg">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fas fa-user text-gray-400"></i>
+                                </div>
+                                {{ form.first_name }}
+                            </div>
+                            {% if form.first_name.errors %}
+                            <span class="text-red-500 text-sm">{{ form.first_name.errors|join:", " }}</span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Last Name -->
+                        <div class="space-y-2">
+                            <label for="{{ form.last_name.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                Last Name
+                            </label>
+                            <div class="relative rounded-lg">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fas fa-user text-gray-400"></i>
+                                </div>
+                                {{ form.last_name }}
+                            </div>
+                            {% if form.last_name.errors %}
+                            <span class="text-red-500 text-sm">{{ form.last_name.errors|join:", " }}</span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Username -->
+                        <div class="space-y-2">
+                            <label for="{{ form.username.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                Username
+                            </label>
+                            <div class="relative rounded-lg">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fas fa-at text-gray-400"></i>
+                                </div>
+                                {{ form.username }}
+                            </div>
+                            {% if form.username.errors %}
+                            <span class="text-red-500 text-sm">{{ form.username.errors|join:", " }}</span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Email -->
+                        <div class="space-y-2">
+                            <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                Email Address
+                            </label>
+                            <div class="relative rounded-lg">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fas fa-envelope text-gray-400"></i>
+                                </div>
+                                {{ form.email }}
+                            </div>
+                            {% if form.email.errors %}
+                            <span class="text-red-500 text-sm">{{ form.email.errors|join:", " }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- Contact Information -->
+                <div class="space-y-4">
+                    <h3 class="text-lg font-medium text-gray-900 border-b pb-2">Contact Information</h3>
+                    <div class="space-y-2">
+                        <label for="{{ form.phone_number.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Phone Number
+                        </label>
+                        <div class="relative rounded-lg">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-phone text-gray-400"></i>
+                            </div>
+                            {{ form.phone_number }}
+                        </div>
+                        {% if form.phone_number.errors %}
+                        <span class="text-red-500 text-sm">{{ form.phone_number.errors|join:", " }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Profile Information -->
+                <div class="space-y-4">
+                    <h3 class="text-lg font-medium text-gray-900 border-b pb-2">Profile Information</h3>
+                    <div class="space-y-2">
+                        <label for="{{ form.bio.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Professional Bio
+                        </label>
+                        <div class="relative rounded-lg">
+                            <div class="absolute top-3 left-3 pointer-events-none">
+                                <i class="fas fa-info-circle text-gray-400"></i>
+                            </div>
+                            {{ form.bio }}
+                        </div>
+                        {% if form.bio.errors %}
+                        <span class="text-red-500 text-sm">{{ form.bio.errors|join:", " }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center justify-end space-x-4 pt-6 border-t">
+                <a href="{% url 'dashboard' %}" 
+                   class="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
+                    Cancel
+                </a>
+                <button type="submit" 
+                        class="flex items-center justify-center px-6 py-2.5 border border-transparent rounded-lg shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                        :class="{ 'opacity-75 cursor-wait': loading }"
+                        :disabled="loading">
+                    <span x-show="!loading">Save Changes</span>
+                    <span x-show="loading" class="flex items-center">
+                        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Saving...
+                    </span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
