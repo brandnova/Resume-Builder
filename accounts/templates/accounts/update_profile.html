@@ -30,7 +30,7 @@
         <form method="post" enctype="multipart/form-data" class="space-y-8" 
               x-data="{ 
                   loading: false, 
-                  photoPreview: '{% if user.userprofile.profile_picture %}{{ user.userprofile.profile_picture.url|default:"" }}{% else %}#{% endif %}',
+                  photoPreview: '{% if user.userprofile.profile_picture %}{{ user.userprofile.profile_picture.url|default:"" }}{% else %}https://placehold.co/40x400{% endif %}',
                   handleFileSelect(event) {
                       const file = event.target.files[0];
                       if (file) {
